@@ -279,16 +279,31 @@ function resolve_cite(cite)
   -- Check if this is a reference to one of our custom theorems
   for _, citation in ipairs(cite.citations) do
     local ref_id = citation.id
-    if theorem_refs[ref_id] then
-      local ref_info = theorem_refs[ref_id]
-      -- Create a link to the theorem
-      local link = pandoc.Link(
-        {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
-        "#" .. ref_id,
-        "",
-        {class = "quarto-xref"}
-      )
-      return link
+
+    -- Check if this looks like a custom theorem reference (matches our keys)
+    local is_custom_type = false
+    for key, _ in pairs(custom_amsthm_envs) do
+      if ref_id:match("^" .. key .. "%-") then
+        is_custom_type = true
+        break
+      end
+    end
+
+    if is_custom_type then
+      if theorem_refs[ref_id] then
+        local ref_info = theorem_refs[ref_id]
+        -- Create a link to the theorem
+        local link = pandoc.Link(
+          {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
+          "#" .. ref_id,
+          "",
+          {class = "quarto-xref"}
+        )
+        return link
+      else
+        -- Warn about unresolved custom theorem reference
+        io.stderr:write(string.format("WARNING: Unable to resolve crossref @%s\n", ref_id))
+      end
     end
   end
 
@@ -305,16 +320,32 @@ function resolve_span(span)
   if span.classes and span.classes:includes("citation") then
     -- Extract the reference ID from data-cites attribute
     local ref_id = span.attributes["data-cites"]
-    if ref_id and theorem_refs[ref_id] then
-      local ref_info = theorem_refs[ref_id]
-      -- Create a link to the theorem
-      local link = pandoc.Link(
-        {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
-        "#" .. ref_id,
-        "",
-        {class = "quarto-xref"}
-      )
-      return link
+    if ref_id then
+      -- Check if this looks like a custom theorem reference
+      local is_custom_type = false
+      for key, _ in pairs(custom_amsthm_envs) do
+        if ref_id:match("^" .. key .. "%-") then
+          is_custom_type = true
+          break
+        end
+      end
+
+      if is_custom_type then
+        if theorem_refs[ref_id] then
+          local ref_info = theorem_refs[ref_id]
+          -- Create a link to the theorem
+          local link = pandoc.Link(
+            {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
+            "#" .. ref_id,
+            "",
+            {class = "quarto-xref"}
+          )
+          return link
+        else
+          -- Warn about unresolved custom theorem reference
+          io.stderr:write(string.format("WARNING: Unable to resolve crossref @%s\n", ref_id))
+        end
+      end
     end
   end
 
