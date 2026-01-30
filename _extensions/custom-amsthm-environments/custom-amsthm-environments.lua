@@ -1,50 +1,39 @@
--- Custom AMSTHM Environments: Continuous Numbering (Robust Version)
--- Works with your YAML config (custom-amsthm) and ID-based prefixes (#axm-...)
+-- Custom AMSTHM Environments: Continuous Numbering & Header Extraction
+-- Features:
+-- 1. Continuous numbering (Theorem 3.1, Axiom 3.2)
+-- 2. "Spoofs" custom types as Theorems in HTML to use Quarto's referencing
+-- 3. Extracts headers (### My Title) to use as the environment title
 
 function Pandoc(doc)
   -- 1. READ CONFIGURATION
-  -- Look for 'custom-amsthm' (your config) OR 'amsthm-environments' (standard)
   local envs = {}
   local raw_config = doc.meta['custom-amsthm'] or doc.meta['amsthm-environments']
   
   if raw_config then
     for _, item in ipairs(raw_config) do
-      -- Normalize your 'key/name' format to our internal 'id/title' format
       local entry = {}
-      
       if type(item) == 'table' then
-        -- Handle: - key: axm, name: Axiom
         entry.id = pandoc.utils.stringify(item.key or item.id)
         entry.title = pandoc.utils.stringify(item.name or item.title)
       else
-        -- Handle: - axiom
         entry.id = pandoc.utils.stringify(item)
         entry.title = entry.id:gsub("^%l", string.upper)
       end
-      
       table.insert(envs, entry)
     end
   end
 
-  -- Helper: Match a Div to an environment by Class (.axm) OR ID prefix (#axm-...)
+  -- Helper: Match a Div to an environment by Class or ID
   local function detect_environment(div)
     for _, env in ipairs(envs) do
       local prefix = env.id .. "-"
-      
-      -- Check 1: Does the ID start with "axm-"? (e.g. #axm-savage)
-      if div.identifier:find("^" .. prefix) then
-        return env
-      end
-      
-      -- Check 2: Does it have the class? (e.g. .axm)
-      if div.classes:includes(env.id) then
-        return env
-      end
+      if div.identifier:find("^" .. prefix) then return env end
+      if div.classes:includes(env.id) then return env end
     end
     return nil
   end
 
-  local id_map = {} -- Maps "axm-savage" -> "thm-axm-savage"
+  local id_map = {} 
   
   -- PASS 1: PROCESS BLOCKS
   doc.blocks = doc.blocks:walk {
@@ -52,40 +41,48 @@ function Pandoc(doc)
       local env = detect_environment(div)
       
       if env then
+        -- A. HEADER EXTRACTION (New Feature)
+        -- Check if the first block is a Header. If so, use it as the title.
+        if #div.content > 0 and div.content[1].t == "Header" then
+           local header = div.content[1]
+           -- Only extract if user hasn't already provided a name="" attribute
+           if not div.attributes["name"] then
+              div.attributes["name"] = pandoc.utils.stringify(header.content)
+           end
+           -- Remove the header from the content body
+           div.content:remove(1)
+        end
+
         local original_id = div.identifier
-        local env_id = env.id      -- e.g., "axm"
-        local env_title = env.title -- e.g., "Axiom"
+        local env_id = env.id
+        local env_title = env.title
         
-        -- A. UNIFIED ID LOGIC
-        -- We must prepend 'thm-' so Quarto counts it in the continuous sequence
+        -- B. UNIFIED ID LOGIC
         if not original_id:match("^thm%-") then
           local new_id = "thm-" .. original_id
           if original_id == "" then 
              new_id = "thm-" .. env_id .. "-" .. tostring(math.random(10000))
           end
-          
           div.identifier = new_id
           if original_id ~= "" then
-             id_map[original_id] = new_id -- Store for ref fixing
+             id_map[original_id] = new_id 
           end
         end
 
-        -- B. HTML HANDLING
+        -- C. HTML HANDLING
         if quarto.doc.is_format("html") then
-           -- Add necessary classes for styling
            div.classes:insert("theorem")
            div.classes:insert(env_id) 
-           
-           -- Force Quarto to treat it as a theorem type
            div.attributes["type"] = "theorem"
            
-           -- Force the Label Name (Overrides "Theorem 1.1" -> "Axiom 1.1")
+           -- If we extracted a header, 'name' is already set. 
+           -- If not, use the default environment title (e.g. "Axiom")
            if not div.attributes["name"] then
              div.attributes["name"] = env_title
            end
         end
 
-        -- C. LATEX HANDLING
+        -- D. LATEX HANDLING
         if quarto.doc.is_format("latex") then
           local label_cmd = ""
           if div.identifier ~= "" then
@@ -93,6 +90,7 @@ function Pandoc(doc)
           end
           
           local begin_cmd = "\\begin{" .. env_id .. "}"
+          -- Inject the extracted title [Name] if it exists
           if div.attributes["name"] then
             begin_cmd = begin_cmd .. "[" .. div.attributes["name"] .. "]"
           end
@@ -100,7 +98,13 @@ function Pandoc(doc)
           local raw_begin = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
           local raw_end = pandoc.RawBlock("latex", "\\end{" .. env_id .. "}")
           
-          return { raw_begin } .. div.content .. { raw_end }
+          -- Use pandoc.List to avoid concatenation errors
+          local new_content = pandoc.List()
+          new_content:insert(raw_begin)
+          new_content:extend(div.content)
+          new_content:insert(raw_end)
+          
+          return new_content
         end
         
         return div
@@ -108,7 +112,7 @@ function Pandoc(doc)
     end
   }
 
-  -- PASS 2: FIX REFERENCES (@axm-savage -> @thm-axm-savage)
+  -- PASS 2: FIX REFERENCES
   doc = doc:walk {
     Cite = function(cite)
       for _, citation in ipairs(cite.citations) do
@@ -128,34 +132,25 @@ function Pandoc(doc)
     end
   }
 
-  -- PASS 3: LATEX HEADER (Continuous Numbering Logic)
+  -- PASS 3: LATEX HEADER
   if quarto.doc.is_format("latex") and #envs > 0 then
     local header = ""
-    local master = "theorem" -- Default master
+    local master = "theorem"
     
-    -- Check if user defined 'theorem' in their list, if so use it as master
     local user_has_theorem = false
     for _, e in ipairs(envs) do if e.id == "theorem" then user_has_theorem = true end end
     
-    -- If user didn't define theorem, use the FIRST environment as the master
-    local first_env = envs[1]
-    if not user_has_theorem then
-       master = first_env.id
-    end
+    if not user_has_theorem then master = envs[1].id end
     
-    -- Generate \newtheorem commands
     for i, e in ipairs(envs) do
-      -- If this is the master, define it normally (reset by section)
       if e.id == master then
          header = header .. "\\newtheorem{" .. e.id .. "}{" .. e.title .. "}[section]\n"
       end
     end
     
-    -- Now define the others to share the master counter
     for i, e in ipairs(envs) do
       if e.id ~= master then
          if user_has_theorem or (e.id ~= envs[1].id) then
-            -- Use the shared counter
             header = header .. "\\newtheorem{" .. e.id .. "}[" .. master .. "]{" .. e.title .. "}\n"
          end
       end
