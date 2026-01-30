@@ -5,7 +5,7 @@ Quarto has excellent built-in support for standard theorem-like environments (th
 ## Installation
 
 ```bash
-quarto add MateusMolina/custom-amsthm-environments
+quarto add alexander-newton/custom-amsthm-environments
 ```
 
 ## Quick Start
