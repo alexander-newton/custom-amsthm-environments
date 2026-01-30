@@ -1,0 +1,62 @@
+---
+title: Test Continuous Numbering
+format:
+  pdf:
+    keep-tex: true
+  html: default
+number-sections: true
+custom-amsthm:
+  - key: mythm
+    name: My Theorem
+  - key: myexm
+    name: My Example
+  - key: mycor
+    name: My Corollary
+  - key: myaxm
+    name: My Axiom
+filters:
+  - custom-amsthm-environments
+---
+
+# Introduction
+
+This document demonstrates continuous numbering across different theorem-like environments.
+
+# First Section
+
+## Theorems
+
+::: {#mythm-first}
+## First Theorem
+This should be Theorem 2.1.
+:::
+
+::: {#myexm-first}
+This should be Example 2.2 (continuing from Theorem 2.1).
+:::
+
+::: {#mycor-first}
+## Important Corollary
+This should be Corollary 2.3 (continuing the sequence).
+:::
+
+::: {#myaxm-first}
+This should be Axiom 2.4 (still continuing).
+:::
+
+# Second Section
+
+::: {#mythm-second}
+This should be Theorem 3.1 (new section, counter resets).
+:::
+
+::: {#myexm-second}
+## Another Example
+This should be Example 3.2.
+:::
+
+::: {#mycor-second}
+This should be Corollary 3.3.
+:::
+
+Notice how all different environment types (Theorem, Example, Corollary, Axiom) share the same counter within each section!

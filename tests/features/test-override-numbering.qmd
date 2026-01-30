@@ -1,0 +1,55 @@
+---
+title: Test Override Numbering
+format:
+  pdf:
+    keep-tex: true
+number-sections: true
+custom-amsthm:
+  - key: axm
+    name: Axiom
+  - key: prm
+    name: Problem
+filters:
+  - custom-amsthm-environments
+---
+
+# First Section
+
+## Standard Numbering
+
+::: {#axm-first}
+Standard axiom. Should be 1.1.
+:::
+
+::: {#prm-first}
+Standard problem. Should be 1.2.
+:::
+
+## Override with Custom Number
+
+::: {#axm-special number="A1"}
+## Axiom of Certainty
+This axiom uses override number "A1" instead of sequential numbering.
+:::
+
+::: {#prm-after}
+This problem should be 1.3 (sequential numbering continues separately).
+:::
+
+::: {#axm-another number="A2"}
+Another special axiom with custom number A2.
+:::
+
+## Override with Custom Name (No Number)
+
+::: {#axm-named number="Axiom of Choice"}
+This uses a custom name instead of a number.
+:::
+
+Expected output:
+- Axiom 1.1 (standard)
+- Problem 1.2 (standard)
+- Axiom A1 (Axiom of Certainty) - override
+- Problem 1.3 (continues sequential)
+- Axiom A2 - override
+- Axiom of Choice - override with name
