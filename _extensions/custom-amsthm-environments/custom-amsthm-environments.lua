@@ -1,5 +1,5 @@
 -- Custom AMSTHM Environments: Continuous Numbering & Header Extraction
--- STABLE VERSION: Uses standard Lua tables to prevent Quarto/Pandoc crashes.
+-- STRICT VERSION: Uses pandoc.List() everywhere to prevent Quarto crashes.
 
 function Pandoc(doc)
   -- 1. READ CONFIGURATION
@@ -10,7 +10,6 @@ function Pandoc(doc)
     for _, item in ipairs(raw_config) do
       local entry = {}
       if type(item) == 'table' then
-        -- Support both key/name (your config) and id/title (standard)
         entry.id = pandoc.utils.stringify(item.key or item.id)
         entry.title = pandoc.utils.stringify(item.name or item.title)
       else
@@ -39,32 +38,31 @@ function Pandoc(doc)
       local env = detect_environment(div)
       
       if env then
-        -- A. PREPARE CONTENT & TITLE
-        -- We build a NEW content list to avoid crashing the iterator
-        local content_subset = {} 
+        -- A. PREPARE CONTENT & TITLE (Using Strict pandoc.List)
+        local new_content = pandoc.List()
         local final_title = div.attributes["name"] or env.title
         
-        -- Check if first block is a Header (to extract title)
         local start_index = 1
+        
+        -- Check for Header Extraction
         if #div.content > 0 and div.content[1].t == "Header" then
            -- If user didn't manually set name="", use the header text
            if not div.attributes["name"] then
               final_title = pandoc.utils.stringify(div.content[1].content)
            end
-           -- Skip the header in the output content
+           -- Skip the header in the output
            start_index = 2
         end
 
-        -- safe copy of remaining blocks
+        -- Copy remaining blocks safely into the pandoc.List
         for i = start_index, #div.content do
-           table.insert(content_subset, div.content[i])
+           new_content:insert(div.content[i])
         end
 
         -- B. UNIFIED ID LOGIC
         local original_id = div.identifier
         local new_id = original_id
         
-        -- Ensure ID starts with thm- for continuous numbering
         if not original_id:match("^thm%-") then
           new_id = "thm-" .. original_id
           if original_id == "" then 
@@ -83,8 +81,8 @@ function Pandoc(doc)
            div.attributes["type"] = "theorem"
            div.attributes["name"] = final_title
            
-           -- Swap the content with our subset (header removed)
-           div.content = content_subset 
+           -- Assigning a pandoc.List to .content is safe
+           div.content = new_content 
            return div
         end
 
@@ -103,12 +101,11 @@ function Pandoc(doc)
           local raw_begin = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
           local raw_end = pandoc.RawBlock("latex", "\\end{" .. env.id .. "}")
           
-          -- Return a plain Lua table of blocks (Safe)
-          local result_blocks = { raw_begin }
-          for _, block in ipairs(content_subset) do
-            table.insert(result_blocks, block)
-          end
-          table.insert(result_blocks, raw_end)
+          -- Construct the strict return List
+          local result_blocks = pandoc.List()
+          result_blocks:insert(raw_begin)
+          result_blocks:extend(new_content)
+          result_blocks:insert(raw_end)
           
           return result_blocks
         end
@@ -146,13 +143,11 @@ function Pandoc(doc)
     for _, e in ipairs(envs) do if e.id == "theorem" then user_has_theorem = true end end
     if not user_has_theorem then master = envs[1].id end
     
-    -- Define master
     for _, e in ipairs(envs) do
       if e.id == master then
          header = header .. "\\newtheorem{" .. e.id .. "}{" .. e.title .. "}[section]\n"
       end
     end
-    -- Define others shared
     for _, e in ipairs(envs) do
       if e.id ~= master then
          if user_has_theorem or (e.id ~= envs[1].id) then
