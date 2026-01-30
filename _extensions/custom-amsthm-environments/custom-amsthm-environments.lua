@@ -1,24 +1,41 @@
 -- Custom AMSTHM Environments with Continuous Numbering & Smart Configuration
--- Supports:
--- 1. Continuous numbering (Theorem 3.1, Example 3.2)
--- 2. Any order in _quarto.yml (auto-detects 'theorem' as master)
--- 3. Simplified writing (allows @ax-1 while using thm-ax-1 internally)
-
-local amsthm_environments = require("amsthm-environments")
-
--- Helper: Check if a list of classes contains one of our target environments
-local function get_env_info(classes)
-  for _, env in ipairs(amsthm_environments) do
-    local id = env.id or env
-    if classes:includes(id) then
-      local title = env.title or id:gsub("^%l", string.upper)
-      return id, title
-    end
-  end
-  return nil, nil
-end
+-- FIXED: Reads config from metadata instead of requiring a missing module.
 
 function Pandoc(doc)
+  -- 1. READ CONFIGURATION FROM METADATA
+  -- We parse _quarto.yml options into a clean Lua table
+  local amsthm_environments = {}
+  local meta_env = doc.meta['amsthm-environments']
+  
+  if meta_env then
+    for _, item in ipairs(meta_env) do
+      -- Handle "- {id: axiom, title: Axiom}" format (MetaMap)
+      if type(item) == 'table' and item.t == 'MetaMap' then
+        table.insert(amsthm_environments, {
+          id = pandoc.utils.stringify(item.id), 
+          title = item.title and pandoc.utils.stringify(item.title) or nil
+        })
+      -- Handle "- axiom" format (MetaInlines/MetaString)
+      else
+        table.insert(amsthm_environments, {
+          id = pandoc.utils.stringify(item)
+        })
+      end
+    end
+  end
+
+  -- Helper: Check if a list of classes contains one of our target environments
+  local function get_env_info(classes)
+    for _, env in ipairs(amsthm_environments) do
+      local id = env.id
+      if classes:includes(id) then
+        local title = env.title or id:gsub("^%l", string.upper)
+        return id, title
+      end
+    end
+    return nil, nil
+  end
+
   local id_map = {} -- Stores mapping from "ax-1" -> "thm-ax-1"
   
   -- PASS 1: Find Custom Divs, Rename IDs, and Spoof Types
@@ -93,25 +110,24 @@ function Pandoc(doc)
   }
 
   -- HEADER INCLUDES: Generate LaTeX definitions (Order Agnostic)
-  if quarto.doc.is_format("latex") then
+  if quarto.doc.is_format("latex") and #amsthm_environments > 0 then
     local header_includes = ""
     local master_id = nil
     local master_title = nil
 
-    -- 1. Identify the Master Environment
-    -- Prefer "theorem" if it exists, otherwise grab the first one defined.
+    -- 1. Identify the Master Environment (Prefer 'theorem')
     for _, env in ipairs(amsthm_environments) do
-      local id = env.id or env
-      if id == "theorem" then
+      if env.id == "theorem" then
          master_id = "theorem"
          master_title = env.title or "Theorem"
          break
       end
     end
 
+    -- If no theorem, use the first defined env
     if not master_id then
        local first = amsthm_environments[1]
-       master_id = first.id or first
+       master_id = first.id
        master_title = first.title or master_id:gsub("^%l", string.upper)
     end
 
@@ -120,7 +136,7 @@ function Pandoc(doc)
 
     -- 3. Define all others (Shared Counter)
     for _, env in ipairs(amsthm_environments) do
-      local env_id = env.id or env
+      local env_id = env.id
       local env_title = env.title or env_id:gsub("^%l", string.upper)
       
       if env_id ~= master_id then
