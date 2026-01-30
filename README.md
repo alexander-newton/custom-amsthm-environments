@@ -178,9 +178,28 @@ Let $\mathbb{N}$ denote natural numbers.
 
 ### HTML Output
 
-- **Simple sequential numbering**: Problem 1, Problem 2, Problem 3
+- **Section-based numbering**: Problem 1.1, Problem 1.2, Problem 2.1
 - **Custom environments only**: Custom types share a counter, Quarto built-ins have separate counters
-- **Example**: Theorem 1, Problem 1, Definition 2, Problem 2
+- **Example**: Theorem 1.1, Problem 1.1, Definition 1.2, Problem 1.2 (built-ins and custom have separate sequences)
+
+**To enable section-based numbering for built-in types**, add `crossref: chapters: true` to your YAML frontmatter:
+
+```yaml
+---
+title: "My Document"
+format: html
+number-sections: true
+crossref:
+  chapters: true
+custom-amsthm:
+  - key: prm
+    name: Problem
+filters:
+  - custom-amsthm-environments
+---
+```
+
+With this configuration, built-in types will also use section-based numbering (Theorem 1.1, 1.2, 2.1, etc.), though they will still have a separate counter from custom types.
 
 ## Mixing with Built-in Types
 

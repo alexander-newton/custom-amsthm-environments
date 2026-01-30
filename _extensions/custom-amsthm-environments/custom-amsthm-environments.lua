@@ -293,6 +293,7 @@ return {
             return el
           end,
           Div = function(el)
+            -- Process custom environments only (built-in types handled by Quarto's crossref)
             local result = process_divs(el)
             return result or el
           end
