@@ -1,8 +1,5 @@
 -- Custom AMSTHM Environments: Continuous Numbering & Header Extraction
--- Features:
--- 1. Continuous numbering (Theorem 3.1, Axiom 3.2)
--- 2. "Spoofs" custom types as Theorems in HTML to use Quarto's referencing
--- 3. Extracts headers (### My Title) to use as the environment title
+-- STABLE VERSION: Uses standard Lua tables to prevent Quarto/Pandoc crashes.
 
 function Pandoc(doc)
   -- 1. READ CONFIGURATION
@@ -13,6 +10,7 @@ function Pandoc(doc)
     for _, item in ipairs(raw_config) do
       local entry = {}
       if type(item) == 'table' then
+        -- Support both key/name (your config) and id/title (standard)
         entry.id = pandoc.utils.stringify(item.key or item.id)
         entry.title = pandoc.utils.stringify(item.name or item.title)
       else
@@ -23,7 +21,7 @@ function Pandoc(doc)
     end
   end
 
-  -- Helper: Match a Div to an environment by Class or ID
+  -- Helper: Detect environment
   local function detect_environment(div)
     for _, env in ipairs(envs) do
       local prefix = env.id .. "-"
@@ -41,70 +39,78 @@ function Pandoc(doc)
       local env = detect_environment(div)
       
       if env then
-        -- A. HEADER EXTRACTION (New Feature)
-        -- Check if the first block is a Header. If so, use it as the title.
+        -- A. PREPARE CONTENT & TITLE
+        -- We build a NEW content list to avoid crashing the iterator
+        local content_subset = {} 
+        local final_title = div.attributes["name"] or env.title
+        
+        -- Check if first block is a Header (to extract title)
+        local start_index = 1
         if #div.content > 0 and div.content[1].t == "Header" then
-           local header = div.content[1]
-           -- Only extract if user hasn't already provided a name="" attribute
+           -- If user didn't manually set name="", use the header text
            if not div.attributes["name"] then
-              div.attributes["name"] = pandoc.utils.stringify(header.content)
+              final_title = pandoc.utils.stringify(div.content[1].content)
            end
-           -- Remove the header from the content body
-           div.content:remove(1)
+           -- Skip the header in the output content
+           start_index = 2
         end
 
-        local original_id = div.identifier
-        local env_id = env.id
-        local env_title = env.title
-        
+        -- safe copy of remaining blocks
+        for i = start_index, #div.content do
+           table.insert(content_subset, div.content[i])
+        end
+
         -- B. UNIFIED ID LOGIC
+        local original_id = div.identifier
+        local new_id = original_id
+        
+        -- Ensure ID starts with thm- for continuous numbering
         if not original_id:match("^thm%-") then
-          local new_id = "thm-" .. original_id
+          new_id = "thm-" .. original_id
           if original_id == "" then 
-             new_id = "thm-" .. env_id .. "-" .. tostring(math.random(10000))
+             new_id = "thm-" .. env.id .. "-" .. tostring(math.random(10000))
           end
-          div.identifier = new_id
           if original_id ~= "" then
              id_map[original_id] = new_id 
           end
         end
+        div.identifier = new_id
 
-        -- C. HTML HANDLING
+        -- C. HTML OUTPUT
         if quarto.doc.is_format("html") then
            div.classes:insert("theorem")
-           div.classes:insert(env_id) 
+           div.classes:insert(env.id)
            div.attributes["type"] = "theorem"
+           div.attributes["name"] = final_title
            
-           -- If we extracted a header, 'name' is already set. 
-           -- If not, use the default environment title (e.g. "Axiom")
-           if not div.attributes["name"] then
-             div.attributes["name"] = env_title
-           end
+           -- Swap the content with our subset (header removed)
+           div.content = content_subset 
+           return div
         end
 
-        -- D. LATEX HANDLING
+        -- D. LATEX OUTPUT
         if quarto.doc.is_format("latex") then
           local label_cmd = ""
           if div.identifier ~= "" then
             label_cmd = "\\label{" .. div.identifier .. "}"
           end
           
-          local begin_cmd = "\\begin{" .. env_id .. "}"
-          -- Inject the extracted title [Name] if it exists
-          if div.attributes["name"] then
-            begin_cmd = begin_cmd .. "[" .. div.attributes["name"] .. "]"
+          local begin_cmd = "\\begin{" .. env.id .. "}"
+          if final_title then
+            begin_cmd = begin_cmd .. "[" .. final_title .. "]"
           end
           
           local raw_begin = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
-          local raw_end = pandoc.RawBlock("latex", "\\end{" .. env_id .. "}")
+          local raw_end = pandoc.RawBlock("latex", "\\end{" .. env.id .. "}")
           
-          -- Use pandoc.List to avoid concatenation errors
-          local new_content = pandoc.List()
-          new_content:insert(raw_begin)
-          new_content:extend(div.content)
-          new_content:insert(raw_end)
+          -- Return a plain Lua table of blocks (Safe)
+          local result_blocks = { raw_begin }
+          for _, block in ipairs(content_subset) do
+            table.insert(result_blocks, block)
+          end
+          table.insert(result_blocks, raw_end)
           
-          return new_content
+          return result_blocks
         end
         
         return div
@@ -122,7 +128,6 @@ function Pandoc(doc)
       end
       return cite
     end,
-    
     Link = function(link)
       local clean_hash = link.target:match("^#(.*)")
       if clean_hash and id_map[clean_hash] then
@@ -139,16 +144,16 @@ function Pandoc(doc)
     
     local user_has_theorem = false
     for _, e in ipairs(envs) do if e.id == "theorem" then user_has_theorem = true end end
-    
     if not user_has_theorem then master = envs[1].id end
     
-    for i, e in ipairs(envs) do
+    -- Define master
+    for _, e in ipairs(envs) do
       if e.id == master then
          header = header .. "\\newtheorem{" .. e.id .. "}{" .. e.title .. "}[section]\n"
       end
     end
-    
-    for i, e in ipairs(envs) do
+    -- Define others shared
+    for _, e in ipairs(envs) do
       if e.id ~= master then
          if user_has_theorem or (e.id ~= envs[1].id) then
             header = header .. "\\newtheorem{" .. e.id .. "}[" .. master .. "]{" .. e.title .. "}\n"
