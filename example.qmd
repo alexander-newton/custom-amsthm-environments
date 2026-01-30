@@ -1,19 +1,19 @@
 ---
-title: Custom AmSTHm Environments
+title: Custom AmSThm Environments - Complete Guide
 format:
   pdf:
     keep-tex: true
+  html: default
 number-sections: true
 custom-amsthm:
   - key: prm
     name: Problem
-    # reference-prefix and latex-name are automatically derived from name
+  - key: axm
+    name: Axiom
   - key: clm
     name: Claim
-    numbering-style: global  # Example of global numbering
   - key: obs
     name: Observation
-    # numbering-style: section (default)
   - key: nota
     name: Notation
     numbered: false
@@ -21,96 +21,208 @@ filters:
   - custom-amsthm-environments
 ---
 
-# Introduction 
+# Introduction
 
-This extension allows you to define custom theorem-like environments that work with both HTML and LaTeX output.
+This document demonstrates all features of the custom-amsthm-environments extension.
 
-## Configuration
+## What This Extension Does
 
-Each custom environment requires:
+- Defines custom theorem-like environments (Problem, Claim, Axiom, etc.)
+- **Continuous numbering**: All custom environments share the same counter
+- Works with both HTML and LaTeX output
+- Supports override numbers for special cases
+- Compatible with Quarto's built-in theorem types
 
-- `key`: Short identifier used in div IDs (e.g., `prm` for `#prm-problem1`)
-- `name`: Display name of the environment (e.g., "Problem")
+# Feature 1: Continuous Numbering
 
-Optional fields (automatically derived if not specified):
+The key feature is that **all custom environments share the same counter**:
 
-- `reference-prefix`: Text used in cross-references (defaults to `name`)
-- `latex-name`: LaTeX environment name (defaults to lowercase `name`)
-- `numbered`: Whether to number the environment (defaults to `true`)
-- `numbering-style`: How to number in LaTeX (defaults to `"section"`)
-
-# Basic Usage
-
-## Numbering Styles
-
-The extension supports two numbering styles for LaTeX output:
-
-- `section` (default): Numbers within sections like "Problem 1.1", matching Quarto's built-in theorem style
-- `global`: Simple global numbering like "Claim 1", "Claim 2", etc.
-
-Note: HTML output always uses simple sequential numbering regardless of the numbering style setting.
-
-Here's a simple problem without a title:
-
-::: {#prm-problem1}
-Show that $2 + 2 = 4$.
+::: {#prm-first}
+This is Problem 1.
 :::
 
-And here's how you reference it: See @prm-problem1.
-
-## Problems with Titles
-
-You can also add titles to your environments using the `## Title` syntax:
-
-::: {#prm-problem2}
-## Arithmetic Challenge
-
-Prove that $1 + 1 = 2$ using Peano axioms.
+::: {#axm-first}
+This is Axiom 2 (continuing from Problem 1).
 :::
 
-Reference: In @prm-problem2, we explore fundamental arithmetic.
-
-## Other Custom Environments
-
-Here's a claim:
-
-::: {#clm-main-claim}
-All swams are black.
+::: {#clm-first}
+This is Claim 3 (still continuous).
 :::
 
-An observation with a title:
-
-::: {#obs-key-observation}
-## Empirical Finding
-
-We observed that 95% of the tested samples showed the expected behavior.
+::: {#obs-first}
+This is Observation 4 (continuous numbering across all types).
 :::
 
-And some notation (unnumbered):
+**Notice**: Problem 1, Axiom 2, Claim 3, Observation 4 - all sequential!
 
-::: {#nota-basic}
-Let $\mathbb{N}$ denote the set of natural numbers.
+# Feature 2: Custom Titles
+
+Add optional titles using level-2 headers:
+
+::: {#prm-titled}
+## The Goldbach Conjecture
+Every even integer greater than 2 can be expressed as the sum of two primes.
 :::
 
-## Cross-References
+::: {#axm-titled}
+## Axiom of Choice
+Every set has a choice function.
+:::
 
-You can reference these environments just like you would reference figures or equations:
+# Feature 3: Override Numbers
 
-- @prm-problem1 asks a basic question
-- @prm-problem2 is more challenging
-- @clm-main-claim is our main assertion
-- @obs-key-observation supports our hypothesis
+Use custom numbers that don't consume sequential numbering:
 
-## Traditional AmSThm Environments
+::: {#prm-after-title}
+This is Problem 7 (sequential continues).
+:::
 
-The extension coexists with Quarto's built-in amsthm support:
+::: {#axm-special number="A1"}
+## Foundational Axiom
+This uses override number A1 (doesn't consume sequential numbers).
+:::
+
+::: {#prm-after-override}
+This is Problem 8 (continues from 7, skipping the override!).
+:::
+
+::: {#axm-another number="A2"}
+Another axiom with custom number A2.
+:::
+
+**Notice**: The override numbers (A1, A2) don't interrupt the sequential numbering (7, 8).
+
+# Feature 4: Override with Custom Names
+
+You can use text instead of numbers:
+
+::: {#axm-choice number="Axiom of Choice"}
+For any set $X$ of nonempty sets, there exists a choice function $f: X \to \bigcup X$.
+:::
+
+::: {#axm-zorn number="Zorn's Lemma"}
+Every partially ordered set in which every chain has an upper bound contains at least one maximal element.
+:::
+
+# Feature 5: Unnumbered Environments
+
+Some environments don't need numbers:
+
+::: {#nota-symbols}
+Let $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, and $\mathbb{C}$ denote the natural numbers, integers, rationals, reals, and complex numbers respectively.
+:::
+
+::: {#nota-notation}
+We write $f: A \to B$ to denote a function from set $A$ to set $B$.
+:::
+
+**Notice**: Notation environments don't show numbers.
+
+# Feature 6: Mixing with Built-in Types
+
+The extension works alongside Quarto's built-in theorem types:
 
 ::: {#thm-pythagoras}
 ## Pythagorean Theorem
-
-In a right triangle with legs of length $a$ and $b$ and hypotenuse of length $c$, we have $a^2 + b^2 = c^2$.
+In a right triangle with legs $a$, $b$ and hypotenuse $c$: $a^2 + b^2 = c^2$.
 :::
 
-See @thm-pythagoras for the classic result.
+::: {#prm-verify}
+Verify the Pythagorean theorem for a 3-4-5 triangle.
+:::
 
+::: {#def-triangle}
+A **right triangle** is a triangle with one 90-degree angle.
+:::
 
+**PDF Output**: Theorem 1.1, Problem 1.2, Definition 1.3 (all continuous!)
+
+**HTML Output**: Theorem 1, Problem 12, Definition 1 (built-ins have separate counters)
+
+# Feature 7: Cross-References
+
+Reference environments using their IDs:
+
+- See @prm-first for the first problem
+- @axm-titled states the Axiom of Choice
+- @thm-pythagoras is a classic theorem
+- @prm-verify asks you to verify something
+
+**Note**: Cross-reference support is limited for custom types in HTML.
+
+# Complete Numbering Example
+
+Let's see all the numbering in action:
+
+::: {#prm-seq1}
+Problem 13 (sequential).
+:::
+
+::: {#axm-seq1}
+Axiom 14 (continues).
+:::
+
+::: {#clm-seq1}
+Claim 15 (continues).
+:::
+
+::: {#axm-override1 number="B1"}
+Axiom B1 (override - doesn't consume).
+:::
+
+::: {#obs-seq1}
+Observation 16 (continues from 15).
+:::
+
+::: {#nota-skip}
+Notation (unnumbered - doesn't consume).
+:::
+
+::: {#prm-seq2}
+Problem 17 (continues from 16).
+:::
+
+**Final sequence**: 13, 14, 15, B1 (override), 16, (unnumbered), 17
+
+# Configuration Options
+
+## Required Fields
+
+- `key`: Short identifier (e.g., `prm`)
+- `name`: Display name (e.g., "Problem")
+
+## Optional Fields
+
+- `numbered`: `true` (default) or `false`
+- `reference-prefix`: Text for cross-references (defaults to `name`)
+- `latex-name`: LaTeX environment name (defaults to lowercase `name`)
+
+## Example Configuration
+
+```yaml
+custom-amsthm:
+  - key: prm
+    name: Problem
+    # numbered: true (default)
+
+  - key: nota
+    name: Notation
+    numbered: false
+
+  - key: obs
+    name: Observation
+    latex-name: observ
+```
+
+# Summary
+
+This extension provides:
+
+1. ✅ **Continuous numbering** across all custom environment types
+2. ✅ **Override numbers** (A1, B2, "Axiom of Choice")
+3. ✅ **Custom titles** using `## Title` syntax
+4. ✅ **Unnumbered environments** with `numbered: false`
+5. ✅ **HTML and PDF support** with appropriate rendering
+6. ✅ **Built-in compatibility** works alongside Quarto's theorem types
+
+For more examples, see the `tests/features/` directory in the repository.
