@@ -6,6 +6,7 @@ local used_override_numbers = {}  -- Track override numbers to detect duplicates
 local html_counter = 0  -- Single shared counter for HTML output (continuous numbering)
 local html_section_counter = 0  -- Track section numbers for HTML output
 local html_top_level = nil  -- Auto-detect the top-level header (shallowest level used)
+local theorem_refs = {}  -- Store theorem IDs and their display numbers for cross-references
 
 -- Process metadata and set up crossref configuration
 function process_custom_amsthm(meta)
@@ -253,10 +254,67 @@ function process_divs(div)
         -- Store the number as a data attribute for potential cross-references (if numbered)
         if display_number then
           div.attributes["data-number"] = display_number
+          -- Store reference information for cross-reference resolution
+          theorem_refs[div.identifier] = {
+            number = display_number,
+            name = env.name,
+            prefix = env.reference_prefix
+          }
         end
 
         return div
       end
+    end
+  end
+
+  return nil
+end
+
+-- Resolve cross-references for custom theorem types
+function resolve_cite(cite)
+  if not quarto.doc.is_format("html") then
+    return nil
+  end
+
+  -- Check if this is a reference to one of our custom theorems
+  for _, citation in ipairs(cite.citations) do
+    local ref_id = citation.id
+    if theorem_refs[ref_id] then
+      local ref_info = theorem_refs[ref_id]
+      -- Create a link to the theorem
+      local link = pandoc.Link(
+        {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
+        "#" .. ref_id,
+        "",
+        {class = "quarto-xref"}
+      )
+      return link
+    end
+  end
+
+  return nil
+end
+
+-- Resolve cross-references in citation spans (for post-processed HTML)
+function resolve_span(span)
+  if not quarto.doc.is_format("html") then
+    return nil
+  end
+
+  -- Check if this is a citation span
+  if span.classes and span.classes:includes("citation") then
+    -- Extract the reference ID from data-cites attribute
+    local ref_id = span.attributes["data-cites"]
+    if ref_id and theorem_refs[ref_id] then
+      local ref_info = theorem_refs[ref_id]
+      -- Create a link to the theorem
+      local link = pandoc.Link(
+        {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
+        "#" .. ref_id,
+        "",
+        {class = "quarto-xref"}
+      )
+      return link
     end
   end
 
@@ -284,7 +342,7 @@ return {
         end
         return doc
       elseif quarto.doc.is_format("html") then
-        -- For HTML, use pandoc.walk to process elements in document order
+        -- First pass: process theorems and store references
         doc.blocks = pandoc.walk_block(pandoc.Div(doc.blocks), {
           Header = function(el)
             -- Auto-detect top-level header (use the shallowest level we encounter)
@@ -305,6 +363,13 @@ return {
             return result or el
           end
         }).content
+
+        -- Second pass: resolve cross-references now that theorem_refs is populated
+        doc = doc:walk({
+          Cite = resolve_cite,
+          Span = resolve_span
+        })
+
         return doc
       end
       return doc
