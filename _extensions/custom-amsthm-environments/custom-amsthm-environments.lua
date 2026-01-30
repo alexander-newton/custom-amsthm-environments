@@ -4,6 +4,7 @@
 local custom_amsthm_envs = {}
 local used_override_numbers = {}  -- Track override numbers to detect duplicates
 local html_counter = 0  -- Single shared counter for HTML output (continuous numbering)
+local html_section_counter = 0  -- Track section numbers for HTML output
 
 -- Process metadata and set up crossref configuration
 function process_custom_amsthm(meta)
@@ -219,9 +220,9 @@ function process_divs(div)
           end
           display_number = nil
         else
-          -- Standard sequential numbering for HTML - use shared counter for continuous numbering
+          -- Standard sequential numbering for HTML with section prefix
           html_counter = html_counter + 1
-          display_number = tostring(html_counter)
+          display_number = tostring(html_section_counter) .. "." .. tostring(html_counter)
           header_text = env.name .. " " .. display_number
           if title then
             header_text = header_text .. " (" .. title .. ")"
@@ -264,7 +265,15 @@ end
 -- Return filter functions
 return {
   { Meta = process_custom_amsthm },
-  { Div = process_divs },
+  {
+    -- For LaTeX, use simple Div filter
+    Div = function(div)
+      if quarto.doc.is_format("latex") then
+        return process_divs(div)
+      end
+      return nil
+    end
+  },
   {
     Pandoc = function(doc)
       if quarto.doc.is_format("latex") then
@@ -272,6 +281,23 @@ return {
         if header then
           quarto.doc.include_text("in-header", header)
         end
+        return doc
+      elseif quarto.doc.is_format("html") then
+        -- For HTML, use pandoc.walk to process elements in document order
+        doc.blocks = pandoc.walk_block(pandoc.Div(doc.blocks), {
+          Header = function(el)
+            if el.level == 1 then
+              html_section_counter = html_section_counter + 1
+              html_counter = 0  -- Reset counter at each section
+            end
+            return el
+          end,
+          Div = function(el)
+            local result = process_divs(el)
+            return result or el
+          end
+        }).content
+        return doc
       end
       return doc
     end
