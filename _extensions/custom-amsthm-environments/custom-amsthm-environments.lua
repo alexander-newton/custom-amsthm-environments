@@ -1,87 +1,106 @@
--- Custom AMSTHM Environments with Continuous Numbering & Smart Configuration
--- FIXED: Reads config from metadata instead of requiring a missing module.
+-- Custom AMSTHM Environments: Continuous Numbering (Robust Version)
+-- Works with your YAML config (custom-amsthm) and ID-based prefixes (#axm-...)
 
 function Pandoc(doc)
-  -- 1. READ CONFIGURATION FROM METADATA
-  -- We parse _quarto.yml options into a clean Lua table
-  local amsthm_environments = {}
-  local meta_env = doc.meta['amsthm-environments']
+  -- 1. READ CONFIGURATION
+  -- Look for 'custom-amsthm' (your config) OR 'amsthm-environments' (standard)
+  local envs = {}
+  local raw_config = doc.meta['custom-amsthm'] or doc.meta['amsthm-environments']
   
-  if meta_env then
-    for _, item in ipairs(meta_env) do
-      -- Handle "- {id: axiom, title: Axiom}" format (MetaMap)
-      if type(item) == 'table' and item.t == 'MetaMap' then
-        table.insert(amsthm_environments, {
-          id = pandoc.utils.stringify(item.id), 
-          title = item.title and pandoc.utils.stringify(item.title) or nil
-        })
-      -- Handle "- axiom" format (MetaInlines/MetaString)
+  if raw_config then
+    for _, item in ipairs(raw_config) do
+      -- Normalize your 'key/name' format to our internal 'id/title' format
+      local entry = {}
+      
+      if type(item) == 'table' then
+        -- Handle: - key: axm, name: Axiom
+        entry.id = pandoc.utils.stringify(item.key or item.id)
+        entry.title = pandoc.utils.stringify(item.name or item.title)
       else
-        table.insert(amsthm_environments, {
-          id = pandoc.utils.stringify(item)
-        })
+        -- Handle: - axiom
+        entry.id = pandoc.utils.stringify(item)
+        entry.title = entry.id:gsub("^%l", string.upper)
       end
+      
+      table.insert(envs, entry)
     end
   end
 
-  -- Helper: Check if a list of classes contains one of our target environments
-  local function get_env_info(classes)
-    for _, env in ipairs(amsthm_environments) do
-      local id = env.id
-      if classes:includes(id) then
-        local title = env.title or id:gsub("^%l", string.upper)
-        return id, title
+  -- Helper: Match a Div to an environment by Class (.axm) OR ID prefix (#axm-...)
+  local function detect_environment(div)
+    for _, env in ipairs(envs) do
+      local prefix = env.id .. "-"
+      
+      -- Check 1: Does the ID start with "axm-"? (e.g. #axm-savage)
+      if div.identifier:find("^" .. prefix) then
+        return env
+      end
+      
+      -- Check 2: Does it have the class? (e.g. .axm)
+      if div.classes:includes(env.id) then
+        return env
       end
     end
-    return nil, nil
+    return nil
   end
 
-  local id_map = {} -- Stores mapping from "ax-1" -> "thm-ax-1"
+  local id_map = {} -- Maps "axm-savage" -> "thm-axm-savage"
   
-  -- PASS 1: Find Custom Divs, Rename IDs, and Spoof Types
+  -- PASS 1: PROCESS BLOCKS
   doc.blocks = doc.blocks:walk {
     Div = function(div)
-      local env_id, env_title = get_env_info(div.classes)
+      local env = detect_environment(div)
       
-      if env_id then
+      if env then
         local original_id = div.identifier
+        local env_id = env.id      -- e.g., "axm"
+        local env_title = env.title -- e.g., "Axiom"
         
-        -- STANDARD ID LOGIC: Ensure it starts with 'thm-'
-        -- This forces Quarto to put it in the main numbering sequence.
-        if original_id ~= "" and not original_id:match("^thm%-") then
+        -- A. UNIFIED ID LOGIC
+        -- We must prepend 'thm-' so Quarto counts it in the continuous sequence
+        if not original_id:match("^thm%-") then
           local new_id = "thm-" .. original_id
+          if original_id == "" then 
+             new_id = "thm-" .. env_id .. "-" .. tostring(math.random(10000))
+          end
+          
           div.identifier = new_id
-          id_map[original_id] = new_id -- Remember this swap for Pass 2
-        elseif original_id == "" then
-           div.identifier = "thm-" .. env_id .. "-" .. tostring(math.random(100000))
+          if original_id ~= "" then
+             id_map[original_id] = new_id -- Store for ref fixing
+          end
         end
 
-        -- HTML SPECIFIC: Spoof as Theorem for Quarto's CSS/Counter
+        -- B. HTML HANDLING
         if quarto.doc.is_format("html") then
+           -- Add necessary classes for styling
            div.classes:insert("theorem")
+           div.classes:insert(env_id) 
+           
+           -- Force Quarto to treat it as a theorem type
            div.attributes["type"] = "theorem"
-           -- Force the display name (e.g. "Axiom 3.2")
+           
+           -- Force the Label Name (Overrides "Theorem 1.1" -> "Axiom 1.1")
            if not div.attributes["name"] then
              div.attributes["name"] = env_title
            end
         end
 
-        -- LATEX SPECIFIC: Wrap in raw LaTeX environment
+        -- C. LATEX HANDLING
         if quarto.doc.is_format("latex") then
           local label_cmd = ""
           if div.identifier ~= "" then
             label_cmd = "\\label{" .. div.identifier .. "}"
           end
-
+          
           local begin_cmd = "\\begin{" .. env_id .. "}"
           if div.attributes["name"] then
             begin_cmd = begin_cmd .. "[" .. div.attributes["name"] .. "]"
           end
           
-          local start_env = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
-          local end_env = pandoc.RawBlock("latex", "\\end{" .. env_id .. "}")
+          local raw_begin = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
+          local raw_end = pandoc.RawBlock("latex", "\\end{" .. env_id .. "}")
           
-          return { start_env } .. div.content .. { end_env }
+          return { raw_begin } .. div.content .. { raw_end }
         end
         
         return div
@@ -89,7 +108,7 @@ function Pandoc(doc)
     end
   }
 
-  -- PASS 2: Update Citations and Links to match new IDs
+  -- PASS 2: FIX REFERENCES (@axm-savage -> @thm-axm-savage)
   doc = doc:walk {
     Cite = function(cite)
       for _, citation in ipairs(cite.citations) do
@@ -109,43 +128,40 @@ function Pandoc(doc)
     end
   }
 
-  -- HEADER INCLUDES: Generate LaTeX definitions (Order Agnostic)
-  if quarto.doc.is_format("latex") and #amsthm_environments > 0 then
-    local header_includes = ""
-    local master_id = nil
-    local master_title = nil
-
-    -- 1. Identify the Master Environment (Prefer 'theorem')
-    for _, env in ipairs(amsthm_environments) do
-      if env.id == "theorem" then
-         master_id = "theorem"
-         master_title = env.title or "Theorem"
-         break
-      end
+  -- PASS 3: LATEX HEADER (Continuous Numbering Logic)
+  if quarto.doc.is_format("latex") and #envs > 0 then
+    local header = ""
+    local master = "theorem" -- Default master
+    
+    -- Check if user defined 'theorem' in their list, if so use it as master
+    local user_has_theorem = false
+    for _, e in ipairs(envs) do if e.id == "theorem" then user_has_theorem = true end end
+    
+    -- If user didn't define theorem, use the FIRST environment as the master
+    local first_env = envs[1]
+    if not user_has_theorem then
+       master = first_env.id
     end
-
-    -- If no theorem, use the first defined env
-    if not master_id then
-       local first = amsthm_environments[1]
-       master_id = first.id
-       master_title = first.title or master_id:gsub("^%l", string.upper)
-    end
-
-    -- 2. Define the Master First (Counter resets at section)
-    header_includes = header_includes .. "\\newtheorem{" .. master_id .. "}{" .. master_title .. "}[section]\n"
-
-    -- 3. Define all others (Shared Counter)
-    for _, env in ipairs(amsthm_environments) do
-      local env_id = env.id
-      local env_title = env.title or env_id:gsub("^%l", string.upper)
-      
-      if env_id ~= master_id then
-         -- Note: [master_id] makes them share the counter
-         header_includes = header_includes .. "\\newtheorem{" .. env_id .. "}[" .. master_id .. "]{" .. env_title .. "}\n"
+    
+    -- Generate \newtheorem commands
+    for i, e in ipairs(envs) do
+      -- If this is the master, define it normally (reset by section)
+      if e.id == master then
+         header = header .. "\\newtheorem{" .. e.id .. "}{" .. e.title .. "}[section]\n"
       end
     end
     
-    quarto.doc.include_text("in-header", header_includes)
+    -- Now define the others to share the master counter
+    for i, e in ipairs(envs) do
+      if e.id ~= master then
+         if user_has_theorem or (e.id ~= envs[1].id) then
+            -- Use the shared counter
+            header = header .. "\\newtheorem{" .. e.id .. "}[" .. master .. "]{" .. e.title .. "}\n"
+         end
+      end
+    end
+    
+    quarto.doc.include_text("in-header", header)
   end
 
   return doc
