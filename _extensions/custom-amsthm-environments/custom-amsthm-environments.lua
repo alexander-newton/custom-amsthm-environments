@@ -1,5 +1,5 @@
 -- Custom AMSTHM Environments: Continuous Numbering & Header Extraction
--- STRICT VERSION: Uses pandoc.List() everywhere to prevent Quarto crashes.
+-- ROBUST VERSION: Wraps LaTeX output in a container Div to prevent AST splicing crashes.
 
 function Pandoc(doc)
   -- 1. READ CONFIGURATION
@@ -38,25 +38,22 @@ function Pandoc(doc)
       local env = detect_environment(div)
       
       if env then
-        -- A. PREPARE CONTENT & TITLE (Using Strict pandoc.List)
-        local new_content = pandoc.List()
+        -- A. PREPARE CONTENT & TITLE
+        local content_subset = {}
         local final_title = div.attributes["name"] or env.title
         
+        -- Check if first block is a Header (to extract title)
         local start_index = 1
-        
-        -- Check for Header Extraction
         if #div.content > 0 and div.content[1].t == "Header" then
-           -- If user didn't manually set name="", use the header text
            if not div.attributes["name"] then
               final_title = pandoc.utils.stringify(div.content[1].content)
            end
-           -- Skip the header in the output
            start_index = 2
         end
 
-        -- Copy remaining blocks safely into the pandoc.List
+        -- Safe copy of content (as standard Lua table)
         for i = start_index, #div.content do
-           new_content:insert(div.content[i])
+           table.insert(content_subset, div.content[i])
         end
 
         -- B. UNIFIED ID LOGIC
@@ -81,12 +78,12 @@ function Pandoc(doc)
            div.attributes["type"] = "theorem"
            div.attributes["name"] = final_title
            
-           -- Assigning a pandoc.List to .content is safe
-           div.content = new_content 
+           -- Replace content
+           div.content = content_subset 
            return div
         end
 
-        -- D. LATEX OUTPUT
+        -- D. LATEX OUTPUT (The Fix)
         if quarto.doc.is_format("latex") then
           local label_cmd = ""
           if div.identifier ~= "" then
@@ -101,13 +98,17 @@ function Pandoc(doc)
           local raw_begin = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
           local raw_end = pandoc.RawBlock("latex", "\\end{" .. env.id .. "}")
           
-          -- Construct the strict return List
-          local result_blocks = pandoc.List()
-          result_blocks:insert(raw_begin)
-          result_blocks:extend(new_content)
-          result_blocks:insert(raw_end)
+          -- Build a single list for the container
+          local container_content = { raw_begin }
+          for _, block in ipairs(content_subset) do
+            table.insert(container_content, block)
+          end
+          table.insert(container_content, raw_end)
           
-          return result_blocks
+          -- Return a SINGLE Div block (Container) instead of a list of blocks
+          -- This prevents 'jog.lua' errors by avoiding complex splicing.
+          -- An anonymous Div (no ID/Classes) renders as transparent in LaTeX.
+          return pandoc.Div(container_content)
         end
         
         return div
@@ -143,11 +144,13 @@ function Pandoc(doc)
     for _, e in ipairs(envs) do if e.id == "theorem" then user_has_theorem = true end end
     if not user_has_theorem then master = envs[1].id end
     
+    -- Define master
     for _, e in ipairs(envs) do
       if e.id == master then
          header = header .. "\\newtheorem{" .. e.id .. "}{" .. e.title .. "}[section]\n"
       end
     end
+    -- Define others
     for _, e in ipairs(envs) do
       if e.id ~= master then
          if user_has_theorem or (e.id ~= envs[1].id) then
