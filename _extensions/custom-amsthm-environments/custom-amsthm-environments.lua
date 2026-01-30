@@ -13,7 +13,18 @@ function process_custom_amsthm(meta)
       local name = pandoc.utils.stringify(custom.name or key)
       local reference_prefix = pandoc.utils.stringify(custom["reference-prefix"] or name)
       local latex_name = pandoc.utils.stringify(custom["latex-name"] or name:lower())
-      local numbered = custom.numbered == nil or custom.numbered -- default to true
+
+      -- Handle numbered attribute - default to true if not specified
+      local numbered = true
+      if custom.numbered ~= nil then
+        -- Convert Pandoc boolean/string to Lua boolean
+        if type(custom.numbered) == "boolean" then
+          numbered = custom.numbered
+        else
+          local str_val = pandoc.utils.stringify(custom.numbered)
+          numbered = str_val ~= "false"
+        end
+      end
 
       custom_amsthm_envs[key] = {
         name = name,
@@ -196,16 +207,25 @@ function process_divs(div)
         if override_number then
           -- Override number case - don't increment the counter
           display_number = override_number
+          header_text = env.name .. " " .. display_number
+          if title then
+            header_text = header_text .. " (" .. title .. ")"
+          end
+        elseif not env.numbered then
+          -- Unnumbered environment - don't show number or increment counter
+          header_text = env.name
+          if title then
+            header_text = header_text .. " (" .. title .. ")"
+          end
+          display_number = nil
         else
           -- Standard sequential numbering for HTML - use shared counter for continuous numbering
           html_counter = html_counter + 1
           display_number = tostring(html_counter)
-        end
-
-        -- Build header text
-        header_text = env.name .. " " .. display_number
-        if title then
-          header_text = header_text .. " (" .. title .. ")"
+          header_text = env.name .. " " .. display_number
+          if title then
+            header_text = header_text .. " (" .. title .. ")"
+          end
         end
 
         -- Create formatted title
@@ -228,8 +248,10 @@ function process_divs(div)
         body_content:insert(1, title_para)
         div.content = body_content
 
-        -- Store the number as a data attribute for potential cross-references
-        div.attributes["data-number"] = display_number
+        -- Store the number as a data attribute for potential cross-references (if numbered)
+        if display_number then
+          div.attributes["data-number"] = display_number
+        end
 
         return div
       end
