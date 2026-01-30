@@ -1,7 +1,22 @@
+# Example output files
 example_files/libs
 example.*
 !example*.qmd
+
+# Test output files
+test-*.html
+test-*.pdf
+test-*.tex
+test-*.aux
+test-*.log
+test-*.out
+test-*_files/
+
+# Build outputs
 _output
 
+# Extension installations in test directories
 tests/**/_extensions
+
+# Quarto
 .quarto
