@@ -1,0 +1,42 @@
+---
+title: Test Mixed Numbering with Built-in Types
+format:
+  pdf:
+    keep-tex: true
+number-sections: true
+custom-amsthm:
+  - key: prm
+    name: Problem
+  - key: clm
+    name: Claim
+filters:
+  - custom-amsthm-environments
+---
+
+# First Section
+
+This document tests continuous numbering across BOTH custom environments AND Quarto's built-in types.
+
+::: {#thm-builtin1}
+## Built-in Theorem
+This is Quarto's built-in theorem. Should be 1.1.
+:::
+
+::: {#prm-custom1}
+Custom Problem environment. Should be 1.2 (continuing from theorem).
+:::
+
+::: {#def-builtin1}
+Built-in Definition. Should be 1.3 (continuing the sequence).
+:::
+
+::: {#clm-custom1}
+## Important Claim
+Custom Claim environment. Should be 1.4 (still continuing).
+:::
+
+::: {#lem-builtin1}
+Built-in Lemma. Should be 1.5.
+:::
+
+The goal is: Theorem 1.1, Problem 1.2, Definition 1.3, Claim 1.4, Lemma 1.5 - all sharing the same counter!
