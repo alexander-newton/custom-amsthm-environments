@@ -1,22 +1,33 @@
 -- Custom AMSTHM Environments: Continuous Numbering & Header Extraction
--- ARCHITECTURE: Multi-pass filter chain to prevent Quarto AST walker crashes.
+-- STABILITY FIX: Uses "Ghost Divs" to prevent Quarto AST crashes.
 
--- GLOBAL STATE (Shared across passes)
+-- GLOBAL STATE (Populated by Config, used by Divs/Header)
 local envs = {}
 local id_map = {}
-local header_includes = ""
 
--- PASS 1: Configuration (Reads your YAML settings)
+-- HELPER: Safe Stringify (Handles strings and Pandoc elements)
+local function safe_string(x)
+  if type(x) == 'string' then return x end
+  if x and x.t == 'MetaString' then return x.text end
+  if x and x.t == 'MetaInlines' then return pandoc.utils.stringify(x) end
+  return pandoc.utils.stringify(x)
+end
+
+-- 1. CONFIGURATION PASS (Reads _quarto.yml)
 local function Pass1_Config(meta)
   local raw_config = meta['custom-amsthm'] or meta['amsthm-environments']
   if raw_config then
     for _, item in ipairs(raw_config) do
       local entry = {}
       if type(item) == 'table' then
-        entry.id = pandoc.utils.stringify(item.key or item.id)
-        entry.title = pandoc.utils.stringify(item.name or item.title)
+        -- Handle: - key: axm, name: Axiom
+        local k = item.key or item.id
+        local n = item.name or item.title
+        entry.id = safe_string(k)
+        entry.title = safe_string(n)
       else
-        entry.id = pandoc.utils.stringify(item)
+        -- Handle: - axiom
+        entry.id = safe_string(item)
         entry.title = entry.id:gsub("^%l", string.upper)
       end
       table.insert(envs, entry)
@@ -24,9 +35,9 @@ local function Pass1_Config(meta)
   end
 end
 
--- PASS 2: Block Processing (Renames IDs, Extracts Titles, Formats Output)
+-- 2. DIV PROCESSING PASS (The Core Logic)
 local function Pass2_Div(div)
-  -- 1. Detect Environment
+  -- A. Detect Environment
   local env = nil
   for _, e in ipairs(envs) do
     local prefix = e.id .. "-"
@@ -36,25 +47,18 @@ local function Pass2_Div(div)
   
   if not env then return nil end
 
-  -- 2. Extract Header (Title)
+  -- B. Header Extraction (Check first block)
   local final_title = div.attributes["name"] or env.title
-  local content_subset = {}
-  local start_index = 1
-  
-  -- Check if first block is a Header to use as title
   if #div.content > 0 and div.content[1].t == "Header" then
+     -- If user didn't manually set name, use header text
      if not div.attributes["name"] then
         final_title = pandoc.utils.stringify(div.content[1].content)
      end
-     start_index = 2 -- Skip the header in the output
+     -- Remove the header from the content
+     div.content:remove(1)
   end
 
-  -- Safe copy of content (using standard Loop)
-  for i = start_index, #div.content do
-     table.insert(content_subset, div.content[i])
-  end
-
-  -- 3. Unified ID Logic (Force 'thm-' prefix)
+  -- C. ID Standardization (Enforce 'thm-' prefix)
   local original_id = div.identifier
   local new_id = original_id
   
@@ -63,50 +67,50 @@ local function Pass2_Div(div)
     if original_id == "" then 
        new_id = "thm-" .. env.id .. "-" .. tostring(math.random(10000))
     end
+    -- Map old ID to new ID for reference fixing
     if original_id ~= "" then
        id_map[original_id] = new_id 
     end
   end
-  div.identifier = new_id
-
-  -- 4. HTML Output
+  
+  -- D. OUTPUT GENERATION
   if quarto.doc.is_format("html") then
+     -- HTML: Update Div attributes and return it
+     div.identifier = new_id
      div.classes:insert("theorem")
      div.classes:insert(env.id)
      div.attributes["type"] = "theorem"
      div.attributes["name"] = final_title
-     div.content = content_subset
      return div
-  end
-
-  -- 5. LaTeX Output
-  if quarto.doc.is_format("latex") then
+  
+  elseif quarto.doc.is_format("latex") then
+    -- LATEX: "Ghost Div" Strategy
+    -- 1. Create Raw LaTeX Blocks
     local label_cmd = ""
-    if div.identifier ~= "" then
-      label_cmd = "\\label{" .. div.identifier .. "}"
-    end
+    if new_id ~= "" then label_cmd = "\\label{" .. new_id .. "}" end
     
-    local begin_cmd = "\\begin{" .. env.id .. "}"
-    if final_title then
-      begin_cmd = begin_cmd .. "[" .. final_title .. "]"
-    end
+    local begin_text = "\\begin{" .. env.id .. "}"
+    if final_title then begin_text = begin_text .. "[" .. final_title .. "]" end
     
-    local raw_begin = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
+    local raw_begin = pandoc.RawBlock("latex", begin_text .. label_cmd)
     local raw_end = pandoc.RawBlock("latex", "\\end{" .. env.id .. "}")
     
-    -- STABILITY FIX: Wrap in a transparent anonymous Div
-    -- This prevents list-splicing crashes in Quarto's 'jog.lua'
-    local container_blocks = { raw_begin }
-    for _, block in ipairs(content_subset) do
-      table.insert(container_blocks, block)
-    end
-    table.insert(container_blocks, raw_end)
+    -- 2. Inject into the Div's content
+    div.content:insert(1, raw_begin)
+    div.content:insert(raw_end)
     
-    return pandoc.Div(container_blocks)
+    -- 3. Strip Div attributes to make it a transparent container
+    -- This ensures Pandoc renders the content (our latex + body) but NO surrounding div tags
+    div.identifier = ""
+    div.classes = {}
+    div.attributes = {}
+    
+    -- 4. Return the Single Div (Safe!)
+    return div
   end
 end
 
--- PASS 3: Fix References (@ax-1 -> @thm-ax-1)
+-- 3. REFERENCE FIXING PASS (@ax-1 -> @thm-ax-1)
 local function Pass3_Refs(doc)
   return doc:walk {
     Cite = function(cite)
@@ -127,23 +131,24 @@ local function Pass3_Refs(doc)
   }
 end
 
--- PASS 4: Header Injection (LaTeX Only)
+-- 4. HEADER GENERATION PASS (LaTeX Only)
 local function Pass4_Header(doc)
   if quarto.doc.is_format("latex") and #envs > 0 then
     local header = ""
     local master = "theorem"
     local user_has_theorem = false
     
+    -- Determine Master Counter
     for _, e in ipairs(envs) do if e.id == "theorem" then user_has_theorem = true end end
     if not user_has_theorem then master = envs[1].id end
     
-    -- Define master (resets at section)
+    -- Write Master Definition
     for _, e in ipairs(envs) do
       if e.id == master then
          header = header .. "\\newtheorem{" .. e.id .. "}{" .. e.title .. "}[section]\n"
       end
     end
-    -- Define others (shared counter)
+    -- Write Shared Definitions
     for _, e in ipairs(envs) do
       if e.id ~= master then
          if user_has_theorem or (e.id ~= envs[1].id) then
@@ -151,16 +156,15 @@ local function Pass4_Header(doc)
          end
       end
     end
-    
     quarto.doc.include_text("in-header", header)
   end
 end
 
--- RETURN FILTER LIST
--- Pandoc applies these strictly in order.
+-- EXECUTION ORDER
+-- We return a list of separate filters to let Pandoc chain them safely.
 return {
-  { Meta = Pass1_Config },
-  { Div = Pass2_Div },
-  { Pandoc = Pass3_Refs },
-  { Pandoc = Pass4_Header }
+  { Meta = Pass1_Config },    -- Load config first
+  { Div = Pass2_Div },        -- Process Divs (depends on config)
+  { Pandoc = Pass3_Refs },    -- Fix refs (depends on Div processing)
+  { Pandoc = Pass4_Header }   -- Write header (depends on config)
 }
