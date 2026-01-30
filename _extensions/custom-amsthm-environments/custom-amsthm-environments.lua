@@ -3,6 +3,7 @@
 
 local custom_amsthm_envs = {}
 local used_override_numbers = {}  -- Track override numbers to detect duplicates
+local html_counter = 0  -- Single shared counter for HTML output (continuous numbering)
 
 -- Process metadata and set up crossref configuration
 function process_custom_amsthm(meta)
@@ -189,41 +190,47 @@ function process_divs(div)
         end
 
         -- Format the theorem title and number
-        -- For HTML, we'll use a simple sequential counter (not section-based)
-        -- This matches what Quarto does for its built-in theorems in HTML
+        local display_number
+        local header_text
+
         if override_number then
-          -- Override number case
-          local header_text = env.name .. " " .. override_number
-          if title then
-            header_text = header_text .. " (" .. title .. ")"
-          end
-
-          -- Create formatted title
-          local title_para = pandoc.Para({
-            pandoc.Span(
-              {pandoc.Strong({pandoc.Str(header_text)})},
-              {class = "theorem-title"}
-            ),
-            pandoc.Space()
-          })
-
-          -- Merge with first paragraph if it exists and is a Para
-          if #body_content > 0 and body_content[1].t == "Para" then
-            for _, elem in ipairs(body_content[1].content) do
-              title_para.content:insert(elem)
-            end
-            body_content:remove(1)
-          end
-
-          body_content:insert(1, title_para)
+          -- Override number case - don't increment the counter
+          display_number = override_number
         else
-          -- Standard numbering - let Quarto handle it via crossref
-          if title then
-            div.attributes["name"] = title
-          end
+          -- Standard sequential numbering for HTML - use shared counter for continuous numbering
+          html_counter = html_counter + 1
+          display_number = tostring(html_counter)
         end
 
+        -- Build header text
+        header_text = env.name .. " " .. display_number
+        if title then
+          header_text = header_text .. " (" .. title .. ")"
+        end
+
+        -- Create formatted title
+        local title_para = pandoc.Para({
+          pandoc.Span(
+            {pandoc.Strong({pandoc.Str(header_text)})},
+            {class = "theorem-title"}
+          ),
+          pandoc.Space()
+        })
+
+        -- Merge with first paragraph if it exists and is a Para
+        if #body_content > 0 and body_content[1].t == "Para" then
+          for _, elem in ipairs(body_content[1].content) do
+            title_para.content:insert(elem)
+          end
+          body_content:remove(1)
+        end
+
+        body_content:insert(1, title_para)
         div.content = body_content
+
+        -- Store the number as a data attribute for potential cross-references
+        div.attributes["data-number"] = display_number
+
         return div
       end
     end
