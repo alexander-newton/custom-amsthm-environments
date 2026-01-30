@@ -1,5 +1,5 @@
 -- Custom AMSTHM Environments: Continuous Numbering & Header Extraction
--- ROBUST VERSION: Wraps LaTeX output in a container Div to prevent AST splicing crashes.
+-- VERSION: Safe Lua Tables (Prevents Quarto 'jog.lua' crashes)
 
 function Pandoc(doc)
   -- 1. READ CONFIGURATION
@@ -38,22 +38,24 @@ function Pandoc(doc)
       local env = detect_environment(div)
       
       if env then
-        -- A. PREPARE CONTENT & TITLE
-        local content_subset = {}
+        -- A. SETUP TITLE & CONTENT
+        -- We use a plain Lua table for safety
+        local clean_content = {}
         local final_title = div.attributes["name"] or env.title
-        
-        -- Check if first block is a Header (to extract title)
         local start_index = 1
+        
+        -- Header Extraction Logic
+        -- Check if the first block is a Header (and user hasn't forced a name)
         if #div.content > 0 and div.content[1].t == "Header" then
            if not div.attributes["name"] then
-              final_title = pandoc.utils.stringify(div.content[1].content)
+             final_title = pandoc.utils.stringify(div.content[1].content)
            end
-           start_index = 2
+           start_index = 2 -- Skip the header block in the output
         end
 
-        -- Safe copy of content (as standard Lua table)
+        -- Copy remaining blocks into our clean Lua table
         for i = start_index, #div.content do
-           table.insert(content_subset, div.content[i])
+           table.insert(clean_content, div.content[i])
         end
 
         -- B. UNIFIED ID LOGIC
@@ -73,17 +75,18 @@ function Pandoc(doc)
 
         -- C. HTML OUTPUT
         if quarto.doc.is_format("html") then
+           -- For HTML, we modify the Div in-place and return it
            div.classes:insert("theorem")
            div.classes:insert(env.id)
            div.attributes["type"] = "theorem"
            div.attributes["name"] = final_title
            
-           -- Replace content
-           div.content = content_subset 
+           -- Update content (pandoc converts Lua table -> List automatically here)
+           div.content = clean_content 
            return div
         end
 
-        -- D. LATEX OUTPUT (The Fix)
+        -- D. LATEX OUTPUT
         if quarto.doc.is_format("latex") then
           local label_cmd = ""
           if div.identifier ~= "" then
@@ -98,17 +101,15 @@ function Pandoc(doc)
           local raw_begin = pandoc.RawBlock("latex", begin_cmd .. label_cmd)
           local raw_end = pandoc.RawBlock("latex", "\\end{" .. env.id .. "}")
           
-          -- Build a single list for the container
-          local container_content = { raw_begin }
-          for _, block in ipairs(content_subset) do
-            table.insert(container_content, block)
+          -- Construct result as a simple Lua table of blocks
+          -- This is the standard return type for splicing in Pandoc
+          local result_blocks = { raw_begin }
+          for _, block in ipairs(clean_content) do
+            table.insert(result_blocks, block)
           end
-          table.insert(container_content, raw_end)
+          table.insert(result_blocks, raw_end)
           
-          -- Return a SINGLE Div block (Container) instead of a list of blocks
-          -- This prevents 'jog.lua' errors by avoiding complex splicing.
-          -- An anonymous Div (no ID/Classes) renders as transparent in LaTeX.
-          return pandoc.Div(container_content)
+          return result_blocks
         end
         
         return div
@@ -144,13 +145,11 @@ function Pandoc(doc)
     for _, e in ipairs(envs) do if e.id == "theorem" then user_has_theorem = true end end
     if not user_has_theorem then master = envs[1].id end
     
-    -- Define master
     for _, e in ipairs(envs) do
       if e.id == master then
          header = header .. "\\newtheorem{" .. e.id .. "}{" .. e.title .. "}[section]\n"
       end
     end
-    -- Define others
     for _, e in ipairs(envs) do
       if e.id ~= master then
          if user_has_theorem or (e.id ~= envs[1].id) then
