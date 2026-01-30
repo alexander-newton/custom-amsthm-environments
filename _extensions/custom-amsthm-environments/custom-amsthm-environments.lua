@@ -5,6 +5,7 @@ local custom_amsthm_envs = {}
 local used_override_numbers = {}  -- Track override numbers to detect duplicates
 local html_counter = 0  -- Single shared counter for HTML output (continuous numbering)
 local html_section_counter = 0  -- Track section numbers for HTML output
+local html_top_level = nil  -- Auto-detect the top-level header (shallowest level used)
 
 -- Process metadata and set up crossref configuration
 function process_custom_amsthm(meta)
@@ -286,7 +287,13 @@ return {
         -- For HTML, use pandoc.walk to process elements in document order
         doc.blocks = pandoc.walk_block(pandoc.Div(doc.blocks), {
           Header = function(el)
-            if el.level == 1 then
+            -- Auto-detect top-level header (use the shallowest level we encounter)
+            if html_top_level == nil or el.level < html_top_level then
+              html_top_level = el.level
+            end
+
+            -- Increment section counter when we see a top-level header
+            if el.level == html_top_level then
               html_section_counter = html_section_counter + 1
               html_counter = 0  -- Reset counter at each section
             end
