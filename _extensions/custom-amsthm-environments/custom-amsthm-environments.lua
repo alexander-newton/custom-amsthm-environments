@@ -20,8 +20,8 @@ function process_custom_amsthm(meta)
       if latex_name_raw then
         latex_name = pandoc.utils.stringify(latex_name_raw)
       else
-        -- Auto-generate latex name from display name: lowercase and remove spaces
-        latex_name = name:lower():gsub("%s+", "")
+        -- Auto-generate latex name from key to avoid conflicts with Quarto built-ins
+        latex_name = key
       end
 
       -- Handle numbered attribute - default to true if not specified
