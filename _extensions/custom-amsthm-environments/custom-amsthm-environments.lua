@@ -279,37 +279,44 @@ end
 
 -- Resolve cross-references for custom theorem types
 function resolve_cite(cite)
-  if not quarto.doc.is_format("html") then
-    return nil
-  end
-
   -- Check if this is a reference to one of our custom theorems
   for _, citation in ipairs(cite.citations) do
     local ref_id = citation.id
 
     -- Check if this looks like a custom theorem reference (matches our keys)
     local is_custom_type = false
+    local env_key = nil
     for key, _ in pairs(custom_amsthm_envs) do
       if ref_id:match("^" .. key .. "%-") then
         is_custom_type = true
+        env_key = key
         break
       end
     end
 
     if is_custom_type then
-      if theorem_refs[ref_id] then
-        local ref_info = theorem_refs[ref_id]
-        -- Create a link to the theorem
-        local link = pandoc.Link(
-          {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
-          "#" .. ref_id,
-          "",
-          {class = "quarto-xref"}
-        )
-        return link
-      else
-        -- Warn about unresolved custom theorem reference
-        io.stderr:write(string.format("WARNING: Unable to resolve crossref @%s\n", ref_id))
+      if quarto.doc.is_format("latex") then
+        -- For LaTeX, convert to hyperref with proper reference
+        local env = custom_amsthm_envs[env_key]
+        local prefix = env.reference_prefix
+        -- Use \hyperref for clickable reference with custom prefix
+        local latex_ref = "\\hyperref[" .. ref_id .. "]{" .. prefix .. "~\\ref*{" .. ref_id .. "}}"
+        return pandoc.RawInline("latex", latex_ref)
+      elseif quarto.doc.is_format("html") then
+        if theorem_refs[ref_id] then
+          local ref_info = theorem_refs[ref_id]
+          -- Create a link to the theorem
+          local link = pandoc.Link(
+            {pandoc.Str(ref_info.prefix .. " " .. ref_info.number)},
+            "#" .. ref_id,
+            "",
+            {class = "quarto-xref"}
+          )
+          return link
+        else
+          -- Warn about unresolved custom theorem reference
+          io.stderr:write(string.format("WARNING: Unable to resolve crossref @%s\n", ref_id))
+        end
       end
     end
   end
@@ -378,6 +385,12 @@ return {
         if header then
           quarto.doc.include_text("in-header", header)
         end
+
+        -- Resolve cross-references for custom theorem types
+        doc = doc:walk({
+          Cite = resolve_cite
+        })
+
         return doc
       elseif quarto.doc.is_format("html") then
         -- First pass: process theorems and store references
