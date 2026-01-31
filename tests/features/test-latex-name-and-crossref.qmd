@@ -1,0 +1,61 @@
+---
+title: "Test LaTeX Name Generation and Cross-References"
+format:
+  html: default
+  latex: default
+number-sections: true
+custom-amsthm:
+  - key: mydef
+    name: Definition
+  - key: mythm
+    name: Theorem
+  - key: customaxm
+    name: Axiom
+    latex-name: customaxiom
+filters:
+  - custom-amsthm-environments
+---
+
+# Testing LaTeX Name Auto-Generation
+
+This test verifies two critical fixes:
+
+1. **Auto-generated latex-name uses key, not name**: When no explicit `latex-name` is provided, the filter should use the `key` value instead of auto-generating from the `name`. This prevents conflicts with Quarto's built-in theorem types.
+
+2. **Cross-references resolve in LaTeX**: The `@mydef-first` syntax should be converted to proper LaTeX `\hyperref` commands in PDF output.
+
+## Test Definitions
+
+::: {#mydef-first}
+
+##### First Definition
+
+This is the first definition. The LaTeX environment should be `mydef`, not `definition`.
+
+:::
+
+::: {#mythm-main}
+
+##### Main Theorem
+
+This is the main theorem. The LaTeX environment should be `mythm`, not `theorem`.
+
+:::
+
+::: {#customaxm-basic}
+
+##### Basic Axiom
+
+This uses explicit latex-name. The LaTeX environment should be `customaxiom`.
+
+:::
+
+## Test Cross-References
+
+Here we reference the definitions and theorems:
+
+- Reference to @mydef-first should work
+- Reference to @mythm-main should work
+- Reference to @customaxm-basic should work
+
+According to @mydef-first, we can see that the environment is correct. Furthermore, @mythm-main shows that the theorem numbering works. Finally, @customaxm-basic demonstrates explicit latex-name specification.

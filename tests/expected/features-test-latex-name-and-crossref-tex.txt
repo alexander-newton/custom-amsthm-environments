@@ -1,0 +1,26 @@
+=== latex-name-uses-key-mydef ===
+\newtheorem{mydef}{Definition}
+
+=== latex-name-uses-key-mythm ===
+\newtheorem{mythm}[theorem]{Theorem}
+
+=== latex-name-explicit-customaxiom ===
+\newtheorem{customaxiom}[theorem]{Axiom}
+
+=== crossref-mydef-resolved ===
+\hyperref[mydef-first]{Definition~\ref*{mydef-first}}
+
+=== crossref-mythm-resolved ===
+\hyperref[mythm-main]{Theorem~\ref*{mythm-main}}
+
+=== crossref-customaxm-resolved ===
+\hyperref[customaxm-basic]{Axiom~\ref*{customaxm-basic}}
+
+=== environment-mydef-used ===
+\begin{mydef}[First Definition]\label{mydef-first}
+
+=== environment-mythm-used ===
+\begin{mythm}[Main Theorem]\label{mythm-main}
+
+=== environment-customaxiom-used ===
+\begin{customaxiom}[Basic Axiom]\label{customaxm-basic}

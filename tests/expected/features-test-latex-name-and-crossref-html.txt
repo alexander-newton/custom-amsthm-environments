@@ -1,0 +1,17 @@
+=== crossref-mydef-html ===
+<a href="#mydef-first" class="quarto-xref">Definition 1.1</a>
+
+=== crossref-mythm-html ===
+<a href="#mythm-main" class="quarto-xref">Theorem 1.2</a>
+
+=== crossref-customaxm-html ===
+<a href="#customaxm-basic" class="quarto-xref">Axiom 1.3</a>
+
+=== mydef-environment-html ===
+<div id="mydef-first" class="theorem mydef" data-number="1.1">
+
+=== mythm-environment-html ===
+<div id="mythm-main" class="theorem mythm" data-number="1.2">
+
+=== customaxm-environment-html ===
+<div id="customaxm-basic" class="theorem customaxm" data-number="1.3">
