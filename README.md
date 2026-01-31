@@ -1,14 +1,6 @@
-# Custom AmSThm Environments Extension for Quarto
+# Custom AmSThm Environments for Quarto
 
-A Quarto extension that enables custom theorem-like environments (Problem, Claim, Observation, etc.) with **automatic continuous numbering** across different environment types.
-
-## Features
-
-✅ **Continuous Numbering** - All custom environments share the same counter
-✅ **Override Numbers** - Use custom numbers like "A1" or "Axiom of Choice"
-✅ **HTML & LaTeX Support** - Works seamlessly in both output formats
-✅ **Built-in Integration** - Mixes with Quarto's standard theorem types
-✅ **Flexible Configuration** - Numbered/unnumbered, custom names, titles
+A Quarto extension for defining custom theorem-like environments with automatic continuous numbering across all environment types.
 
 ## Installation
 
@@ -16,13 +8,13 @@ A Quarto extension that enables custom theorem-like environments (Problem, Claim
 quarto add alexander-newton/custom-amsthm-environments
 ```
 
-## Quick Start
+## Basic Usage
 
-### Basic Usage
+Define custom theorem environments in your document's YAML frontmatter:
 
 ```yaml
 ---
-title: "My Document"
+title: "Document Title"
 format: pdf
 custom-amsthm:
   - key: prm
@@ -34,24 +26,86 @@ filters:
 ---
 ```
 
+Use environments in your document:
+
 ```markdown
 ::: {#prm-first}
 Show that $2 + 2 = 4$.
 :::
 
 ::: {#axm-choice}
-## Axiom of Choice
+##### Axiom of Choice
 Every set has a choice function.
 :::
 ```
 
-**Output:**
+Output:
 - Problem 1
 - Axiom 2 (Axiom of Choice)
 
-### Continuous Numbering Example
+## Configuration
 
-All custom environments share the same counter:
+### Required Fields
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `key` | Short identifier for div IDs | `prm` |
+| `name` | Display name in output | `Problem` |
+
+### Optional Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `numbered` | boolean | `true` | Enable/disable numbering |
+| `reference-prefix` | string | `name` | Prefix used in cross-references |
+| `latex-name` | string | `key` | LaTeX environment name |
+
+### Configuration Examples
+
+```yaml
+custom-amsthm:
+  # Minimal configuration
+  - key: prm
+    name: Problem
+
+  # Unnumbered environment
+  - key: nota
+    name: Notation
+    numbered: false
+
+  # Custom LaTeX environment name
+  - key: obs
+    name: Observation
+    latex-name: customobs
+
+  # Custom reference prefix
+  - key: axm
+    name: Axiom
+    reference-prefix: Ax
+```
+
+### Important: LaTeX Name Generation
+
+By default, `latex-name` is set to the `key` value to avoid conflicts with Quarto's built-in theorem types (theorem, lemma, definition, corollary, etc.).
+
+**Do not use keys that match built-in types:**
+- Avoid: `thm`, `lem`, `def`, `cor`, `prop`, `exm`, `exr`
+- Use: `mythm`, `mylem`, `mydef`, `mycor`, `prm`, `axm`, `obs`, `clm`
+
+If you need a specific LaTeX environment name, set it explicitly:
+
+```yaml
+custom-amsthm:
+  - key: mydef
+    name: Definition
+    latex-name: customdefinition
+```
+
+## Features
+
+### Continuous Numbering
+
+All custom environments share a single counter. In PDF output, built-in Quarto theorem types also share this counter.
 
 ```markdown
 ::: {#prm-first}
@@ -67,72 +121,36 @@ Second problem.
 :::
 ```
 
-**Output:**
+Output:
 - Problem 1
-- Axiom 2 (continues from Problem 1!)
-- Problem 3 (continuous numbering!)
+- Axiom 2
+- Problem 3
 
-## Configuration Options
+### Custom Numbering Override
 
-### Required Fields
-
-- **`key`**: Short identifier used in div IDs (e.g., `prm` for `#prm-problem1`)
-- **`name`**: Display name shown in output (e.g., "Problem")
-
-### Optional Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `numbered` | boolean | `true` | Whether to show numbers |
-| `reference-prefix` | string | `name` | Text used in cross-references |
-| `latex-name` | string | lowercase `name` | LaTeX environment name |
-
-### Configuration Examples
-
-```yaml
-custom-amsthm:
-  # Simple definition
-  - key: prm
-    name: Problem
-
-  # Unnumbered environment
-  - key: nota
-    name: Notation
-    numbered: false
-
-  # Custom LaTeX name
-  - key: obs
-    name: Observation
-    latex-name: observ
-```
-
-## Advanced Features
-
-### Override Numbers
-
-Use custom numbers that don't consume sequential numbering:
+Assign custom numbers that do not affect sequential numbering:
 
 ```markdown
-::: {#axm-first}
+::: {#axm-standard}
 Standard axiom.
 :::
 
 ::: {#axm-special number="A1"}
-## Foundational Axiom
-This uses custom number A1.
+##### Foundational Axiom
+Uses custom number A1.
 :::
 
-::: {#axm-second}
-Another standard axiom.
+::: {#axm-next}
+Next axiom.
 :::
 ```
 
-**Output:**
+Output:
 - Axiom 1
 - Axiom A1 (Foundational Axiom)
-- Axiom 2 (continues from 1, skipping the override!)
+- Axiom 2
 
-### Override with Custom Names
+Non-numeric override values suppress the number:
 
 ```markdown
 ::: {#axm-choice number="Axiom of Choice"}
@@ -140,103 +158,145 @@ Every set has a choice function.
 :::
 ```
 
-**Output:**
-- Axiom of Choice (no number shown)
+Output:
+- Axiom of Choice
 
-### Custom Titles
+### Titles
 
-Add optional titles using level-2 headers:
+Add optional titles using level-5 headers (`#####`):
 
 ```markdown
 ::: {#prm-hard}
-## A Challenging Problem
+##### Challenging Problem
 Prove P ≠ NP.
 :::
 ```
 
-**Output:**
-- Problem 1 (A Challenging Problem)
+Output:
+- Problem 1 (Challenging Problem)
 
-### Unnumbered Environments
+### Cross-References
+
+Reference custom environments using standard Quarto syntax:
 
 ```markdown
-::: {#nota-basic}
-Let $\mathbb{N}$ denote natural numbers.
-:::
+According to @axm-choice, we can derive @prm-first.
 ```
 
-**Output:**
-- Notation (no number)
+**LaTeX/PDF output:**
+- Renders as: "According to Axiom 1, we can derive Problem 2."
+- Creates clickable hyperlinks
+
+**HTML output:**
+- Renders as: "According to Axiom 1.1, we can derive Problem 1.2."
+- Creates clickable links
+
+Cross-references use the `reference-prefix` field (defaults to `name`).
 
 ## Output Format Differences
 
-### LaTeX/PDF Output
+### LaTeX/PDF
 
-- **Section-based numbering**: Problem 1.1, Problem 1.2, Problem 2.1
-- **Full continuous numbering**: All environment types (including Quarto built-ins) share the same counter
-- **Example**: Theorem 1.1, Problem 1.2, Definition 1.3, Axiom 1.4
+- Section-based numbering: Theorem 1.1, Problem 1.2, Axiom 2.1
+- Continuous numbering across all environment types, including Quarto built-ins
+- All theorems, definitions, lemmas, custom environments share one counter
 
-### HTML Output
+### HTML
 
-- **Section-based numbering**: Problem 1.1, Problem 1.2, Problem 2.1
-- **Custom environments only**: Custom types share a counter, Quarto built-ins have separate counters
-- **Example**: Theorem 1.1, Problem 1.1, Definition 1.2, Problem 1.2 (built-ins and custom have separate sequences)
+- Section-based numbering: Theorem 1.1, Problem 1.2, Axiom 2.1
+- Custom environments share one counter
+- Quarto built-in types (theorem, definition, lemma) use separate counters
+- Enable section-based numbering for built-ins with `crossref: chapters: true`
 
-**To enable section-based numbering for built-in types**, add `crossref: chapters: true` to your YAML frontmatter:
+Example with `number-sections: true`:
 
 ```yaml
 ---
-title: "My Document"
 format: html
 number-sections: true
 crossref:
-  chapters: true
+  chapters: true  # Optional: enables section-based numbering for built-ins
 custom-amsthm:
   - key: prm
     name: Problem
-filters:
-  - custom-amsthm-environments
 ---
 ```
 
-With this configuration, built-in types will also use section-based numbering (Theorem 1.1, 1.2, 2.1, etc.), though they will still have a separate counter from custom types.
+## Integration with Quarto Built-ins
 
-## Mixing with Built-in Types
-
-Custom environments work alongside Quarto's built-in theorem types:
+Custom environments work alongside Quarto's standard theorem types:
 
 ```markdown
 ::: {#thm-pythagoras}
-## Pythagorean Theorem
+##### Pythagorean Theorem
 In a right triangle, $a^2 + b^2 = c^2$.
 :::
 
 ::: {#prm-verify}
-Verify this for a 3-4-5 triangle.
+Verify for a 3-4-5 triangle.
 :::
 ```
 
-**PDF Output:**
-- Theorem 1.1
-- Problem 1.2 (shares counter with theorem!)
+**PDF output:** Theorem 1.1, Problem 1.2 (shared counter)
+**HTML output:** Theorem 1.1, Problem 1.1 (separate counters)
 
-**HTML Output:**
-- Theorem 1 (Quarto's built-in counter)
-- Problem 1 (custom counter)
+## Testing
 
-## Important Notes
+### Running Tests
 
-### Naming Conflicts
+The extension includes a Python-based test suite. Tests verify output for both HTML and LaTeX formats.
 
-⚠️ **Avoid built-in environment names:**
+```bash
+# Run all tests
+cd tests
+python run-tests.py
 
-Don't use: `theorem`, `lemma`, `corollary`, `proposition`, `example`, `exercise`, `definition`, `conjecture`, `remark`, `solution`, `proof`
+# Run tests for specific project
+python run-tests.py features
+python run-tests.py book
+python run-tests.py article
+```
 
-Instead use: `mythm`, `Problem`, `Claim`, `Observation`, or other unique names.
+### Test Structure
 
-### Duplicate Override Detection
+Tests are defined in `tests/expected/` directory:
 
-The extension will error if you use the same override number twice:
+```
+tests/
+├── expected/
+│   ├── features-test-continuous-numbering-html.txt
+│   ├── features-test-continuous-numbering-tex.txt
+│   └── ...
+├── features/
+│   ├── test-continuous-numbering.qmd
+│   └── ...
+└── run-tests.py
+```
+
+Each expected file contains test cases marked with `=== test-id ===`:
+
+```
+=== latex-name-uses-key ===
+\newtheorem{mydef}{Definition}
+
+=== crossref-resolved ===
+\hyperref[mydef-first]{Definition~\ref*{mydef-first}}
+```
+
+### Adding Tests
+
+1. Create a `.qmd` file in the appropriate test directory (e.g., `tests/features/`)
+2. Create expected output files in `tests/expected/`:
+   - `{project}-{filename}-html.txt` for HTML output
+   - `{project}-{filename}-tex.txt` for LaTeX output
+3. Define test cases using `=== test-id ===` markers
+4. Run tests to verify
+
+## Error Handling
+
+### Duplicate Override Numbers
+
+The extension detects and reports duplicate override numbers:
 
 ```markdown
 ::: {#axm-first number="A1"}
@@ -248,7 +308,35 @@ Second axiom.
 :::
 ```
 
-**Error:** `ERROR: Duplicate override number 'A1' for environment type 'Axiom'`
+Error: `Duplicate override number 'A1' for environment type 'Axiom'`
+
+### Unresolved Cross-References
+
+HTML output warnings appear when cross-references cannot be resolved:
+
+```
+WARNING: Unable to resolve crossref @prm-missing
+```
+
+Ensure referenced IDs exist and use the correct `key` prefix.
+
+## Troubleshooting
+
+### Environments not rendering
+
+1. Verify filter is specified: `filters: - custom-amsthm-environments`
+2. Check ID format uses correct key: `#prm-first` not `#first`
+3. Confirm extension installation: `quarto list extensions`
+
+### PDF rendering hangs
+
+Ensure LaTeX environment names do not contain spaces. The extension automatically handles this by using the `key` value for `latex-name`.
+
+### Cross-references show as `@ref-id`
+
+For LaTeX/PDF output, ensure the extension is up to date. Cross-reference resolution was added in recent versions.
+
+For HTML output, this may indicate the custom environment was not properly processed. Verify the filter is loaded and the environment key matches the ID prefix.
 
 ## Complete Example
 
@@ -275,7 +363,7 @@ filters:
 # Introduction
 
 ::: {#axm-first}
-## First Axiom
+##### First Axiom
 Every set is well-defined.
 :::
 
@@ -284,7 +372,7 @@ Show that the empty set exists.
 :::
 
 ::: {#axm-choice number="AC"}
-## Axiom of Choice
+##### Axiom of Choice
 Every set has a choice function.
 :::
 
@@ -293,9 +381,11 @@ Let $\emptyset$ denote the empty set.
 :::
 
 ::: {#prm-hard}
-## Challenge Problem
+##### Challenge Problem
 Prove the continuum hypothesis.
 :::
+
+According to @axm-first, we can address @prm-basic.
 ```
 
 **PDF Output:**
@@ -304,38 +394,24 @@ Prove the continuum hypothesis.
 - Axiom AC (Axiom of Choice)
 - Notation (unnumbered)
 - Problem 1.3 (Challenge Problem)
+- "According to Axiom 1.1, we can address Problem 1.2."
 
-## Examples and Tests
+## Example Documents
 
-See the `tests/features/` directory for complete working examples:
-- `test-continuous-numbering.qmd` - Continuous numbering demo
-- `test-mixed-numbering.qmd` - Mixing with built-in types
-- `test-override-numbering.qmd` - Override number features
-
-## Troubleshooting
-
-### Environments not rendering?
-
-1. Check filter is specified: `filters: - custom-amsthm-environments`
-2. Ensure IDs start with your `key`: `#prm-first` not `#first`
-3. Verify extension is installed: `quarto list extensions`
-
-### Numbers not showing in HTML?
-
-This is expected behavior. Custom environments require this extension to show formatted numbers in HTML. Without it, they appear as plain divs.
-
-### Cross-references not working?
-
-Cross-references for custom types have limited support. Use `@prm-id` syntax, but note that Quarto's crossref system has better support for built-in types.
+See `tests/features/` for complete working examples:
+- `test-continuous-numbering.qmd` - Continuous numbering demonstration
+- `test-mixed-numbering.qmd` - Integration with Quarto built-in types
+- `test-override-numbering.qmd` - Custom number override features
+- `test-latex-name-and-crossref.qmd` - LaTeX naming and cross-references
 
 ## Contributing
 
-Issues and pull requests welcome at [github.com/alexander-newton/custom-amsthm-environments](https://github.com/alexander-newton/custom-amsthm-environments)
+Submit issues and pull requests at [github.com/alexander-newton/custom-amsthm-environments](https://github.com/alexander-newton/custom-amsthm-environments)
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License
 
 ## Credits
 
-Based on [MateusMolina/custom-amsthm-environments](https://github.com/MateusMolina/custom-amsthm-environments) with enhancements for continuous numbering and override features.
+Based on [MateusMolina/custom-amsthm-environments](https://github.com/MateusMolina/custom-amsthm-environments) with enhancements for continuous numbering, cross-reference resolution, and override numbering features.
