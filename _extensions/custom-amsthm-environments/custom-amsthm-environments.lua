@@ -15,7 +15,14 @@ function process_custom_amsthm(meta)
       local key = pandoc.utils.stringify(custom.key)
       local name = pandoc.utils.stringify(custom.name or key)
       local reference_prefix = pandoc.utils.stringify(custom["reference-prefix"] or name)
-      local latex_name = pandoc.utils.stringify(custom["latex-name"] or name:lower())
+      local latex_name_raw = custom["latex-name"]
+      local latex_name
+      if latex_name_raw then
+        latex_name = pandoc.utils.stringify(latex_name_raw)
+      else
+        -- Auto-generate latex name from display name: lowercase and remove spaces
+        latex_name = name:lower():gsub("%s+", "")
+      end
 
       -- Handle numbered attribute - default to true if not specified
       local numbered = true

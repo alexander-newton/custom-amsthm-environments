@@ -1,0 +1,38 @@
+---
+title: Regression Test - Spaces in Display Names
+format: pdf
+number-sections: true
+custom-amsthm:
+  - key: mythm
+    name: My Theorem With Spaces
+  - key: mylem
+    name: Another Name With Spaces
+  - key: mydef
+    name: Yet Another Spaced Name
+filters:
+  - custom-amsthm-environments
+---
+
+# Regression Test
+
+This test verifies that custom theorem types with spaces in their display names
+render correctly to PDF. Previously, auto-generated LaTeX environment names
+would include spaces (e.g., "my theorem with spaces"), which is invalid LaTeX
+syntax and caused the compilation to hang.
+
+The fix ensures that auto-generated latex_name values have spaces removed.
+
+::: {#mythm-first}
+This theorem type has "My Theorem With Spaces" as its display name.
+The auto-generated latex name should be "mytheoremwithspaces".
+:::
+
+::: {#mylem-second}
+This lemma has "Another Name With Spaces" as its display name.
+:::
+
+::: {#mydef-third}
+This definition has "Yet Another Spaced Name" as its display name.
+:::
+
+All three environments should render successfully without hanging during LaTeX compilation.
