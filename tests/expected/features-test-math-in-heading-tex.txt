@@ -1,0 +1,11 @@
+=== math-preserved-in-basic-heading ===
+\begin{mythm}[A result about \(x^2\)]\label{mythm-mathbasic}
+
+=== math-preserved-in-frac-heading ===
+\begin{mydef}[The \(\frac{a}{b}\) identity]\label{mydef-mathfrac}
+
+=== math-preserved-in-sub-heading ===
+\begin{mythm}[Properties of \(a_n\) and \(b^k\)]\label{mythm-mathsub}
+
+=== no-math-heading-still-works ===
+\begin{mythm}[A Simple Result]\label{mythm-nomath}

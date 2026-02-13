@@ -1,0 +1,56 @@
+---
+title: "Test Math in Custom Environment Headings"
+format:
+  html: default
+  latex: default
+number-sections: true
+custom-amsthm:
+  - key: mythm
+    name: Theorem
+  - key: mydef
+    name: Definition
+filters:
+  - custom-amsthm-environments
+---
+
+# Math in Headings
+
+## Basic math in heading
+
+::: {#mythm-mathbasic}
+
+##### A result about $x^2$
+
+This theorem has basic inline math in its heading.
+
+:::
+
+## Fraction in heading
+
+::: {#mydef-mathfrac}
+
+##### The $\frac{a}{b}$ identity
+
+This definition has a fraction in its heading.
+
+:::
+
+## Subscript and superscript
+
+::: {#mythm-mathsub}
+
+##### Properties of $a_n$ and $b^k$
+
+This theorem has subscripts and superscripts in the heading.
+
+:::
+
+## No math in heading (control)
+
+::: {#mythm-nomath}
+
+##### A Simple Result
+
+This theorem has no math in its heading and should work fine.
+
+:::

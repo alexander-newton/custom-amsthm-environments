@@ -8,6 +8,13 @@ local html_section_counter = 0  -- Track section numbers for HTML output
 local html_top_level = nil  -- Auto-detect the top-level header (shallowest level used)
 local theorem_refs = {}  -- Store theorem IDs and their display numbers for cross-references
 
+-- Render a list of Pandoc Inlines to a LaTeX string, preserving math delimiters
+local function inlines_to_latex(inlines)
+  local doc = pandoc.Pandoc({pandoc.Plain(inlines)})
+  local result = pandoc.write(doc, "latex")
+  return result:gsub("%s+$", "")
+end
+
 -- Process metadata and set up crossref configuration
 function process_custom_amsthm(meta)
   if meta["custom-amsthm"] then
@@ -36,11 +43,22 @@ function process_custom_amsthm(meta)
         end
       end
 
+      -- Handle style attribute - default to "plain" (italic body, matching Quarto's theorem/lemma/etc.)
+      -- Valid values: "plain" (italic), "definition" (upright), "remark" (upright, lighter)
+      local style = "plain"
+      if custom.style then
+        local style_val = pandoc.utils.stringify(custom.style)
+        if style_val == "plain" or style_val == "definition" or style_val == "remark" then
+          style = style_val
+        end
+      end
+
       custom_amsthm_envs[key] = {
         name = name,
         reference_prefix = reference_prefix,
         latex_name = latex_name,
-        numbered = numbered
+        numbered = numbered,
+        style = style
       }
 
       if not meta.crossref then
@@ -58,6 +76,11 @@ end
 -- Generate LaTeX headers with continuous numbering
 function generate_latex_headers()
   local headers = {}
+
+  -- Ensure amsthm is loaded (Quarto only loads it when built-in theorem types are used)
+  table.insert(headers, "\\makeatletter")
+  table.insert(headers, "\\@ifpackageloaded{amsthm}{}{\\usepackage{amsthm}}")
+  table.insert(headers, "\\makeatother")
 
   -- List of Quarto's built-in theorem types that we want to make share counters
   local builtin_types = {
@@ -96,6 +119,7 @@ function generate_latex_headers()
     local first_custom_env = custom_amsthm_envs[master_custom_key]
 
     -- First, define the first custom environment conditionally
+    table.insert(headers, "\\theoremstyle{" .. first_custom_env.style .. "}")
     table.insert(headers, "\\makeatletter")
     table.insert(headers, "\\@ifundefined{c@" .. master_latex .. "}{")
     -- theorem counter doesn't exist, define first custom env as master
@@ -112,6 +136,7 @@ function generate_latex_headers()
     -- Now define all other custom numbered environments to share with theorem
     for key, env in pairs(custom_amsthm_envs) do
       if env.numbered and key ~= master_custom_key then
+        table.insert(headers, "\\theoremstyle{" .. env.style .. "}")
         table.insert(headers, "\\newtheorem{" .. env.latex_name .. "}[" .. master_latex .. "]{" .. env.name .. "}")
       end
     end
@@ -119,6 +144,7 @@ function generate_latex_headers()
     -- Define unnumbered custom environments
     for key, env in pairs(custom_amsthm_envs) do
       if not env.numbered then
+        table.insert(headers, "\\theoremstyle{" .. env.style .. "}")
         table.insert(headers, "\\newtheorem*{" .. env.latex_name .. "}{" .. env.name .. "}")
       end
     end
@@ -136,11 +162,11 @@ function process_divs(div)
     local env_pattern = "^" .. key .. "%-"
     if div.identifier:match(env_pattern) then
       -- Extract custom title from header if present
-      local title = nil
+      local title_inlines = nil
       local content_start = 1
 
       if #div.content > 0 and div.content[1].t == "Header" then
-        title = pandoc.utils.stringify(div.content[1].content)
+        title_inlines = div.content[1].content:clone()
         content_start = 2
       end
 
@@ -171,8 +197,8 @@ function process_divs(div)
         end
 
         local begin_env = "\\begin{" .. latex_name .. "}"
-        if title then
-          begin_env = begin_env .. "[" .. title .. "]"
+        if title_inlines then
+          begin_env = begin_env .. "[" .. inlines_to_latex(title_inlines) .. "]"
         end
         begin_env = begin_env .. "\\label{" .. div.identifier .. "}"
 
@@ -212,36 +238,42 @@ function process_divs(div)
 
         -- Format the theorem title and number
         local display_number
-        local header_text
+        local header_inlines = pandoc.List()
 
         if override_number then
           -- Override number case - don't increment the counter
           display_number = override_number
-          header_text = env.name .. " " .. display_number
-          if title then
-            header_text = header_text .. " (" .. title .. ")"
+          header_inlines:insert(pandoc.Str(env.name .. " " .. display_number))
+          if title_inlines then
+            header_inlines:insert(pandoc.Str(" ("))
+            header_inlines:extend(title_inlines)
+            header_inlines:insert(pandoc.Str(")"))
           end
         elseif not env.numbered then
           -- Unnumbered environment - don't show number or increment counter
-          header_text = env.name
-          if title then
-            header_text = header_text .. " (" .. title .. ")"
+          header_inlines:insert(pandoc.Str(env.name))
+          if title_inlines then
+            header_inlines:insert(pandoc.Str(" ("))
+            header_inlines:extend(title_inlines)
+            header_inlines:insert(pandoc.Str(")"))
           end
           display_number = nil
         else
           -- Standard sequential numbering for HTML with section prefix
           html_counter = html_counter + 1
           display_number = tostring(html_section_counter) .. "." .. tostring(html_counter)
-          header_text = env.name .. " " .. display_number
-          if title then
-            header_text = header_text .. " (" .. title .. ")"
+          header_inlines:insert(pandoc.Str(env.name .. " " .. display_number))
+          if title_inlines then
+            header_inlines:insert(pandoc.Str(" ("))
+            header_inlines:extend(title_inlines)
+            header_inlines:insert(pandoc.Str(")"))
           end
         end
 
         -- Create formatted title
         local title_para = pandoc.Para({
           pandoc.Span(
-            {pandoc.Strong({pandoc.Str(header_text)})},
+            {pandoc.Strong(header_inlines)},
             {class = "theorem-title"}
           ),
           pandoc.Space()

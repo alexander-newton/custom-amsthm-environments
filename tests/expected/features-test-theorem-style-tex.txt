@@ -1,0 +1,14 @@
+=== mythm-gets-plain-style ===
+\theoremstyle{plain}
+\newtheorem{mythm}[theorem]{Theorem}
+
+=== mydef-gets-definition-style ===
+\theoremstyle{definition}
+\newtheorem{mydef}[theorem]{Definition}
+
+=== myrmk-gets-remark-style ===
+\theoremstyle{remark}
+
+=== myprop-defaults-to-plain-style ===
+\theoremstyle{plain}
+\newtheorem{myprop}[theorem]{Proposition}

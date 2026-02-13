@@ -1,0 +1,54 @@
+---
+title: "Test Theorem Style Option"
+format:
+  latex: default
+number-sections: true
+custom-amsthm:
+  - key: mythm
+    name: Theorem
+    style: plain
+  - key: mydef
+    name: Definition
+    style: definition
+  - key: myrmk
+    name: Remark
+    style: remark
+  - key: myprop
+    name: Proposition
+filters:
+  - custom-amsthm-environments
+---
+
+# Theorem Styles
+
+::: {#mythm-first}
+
+##### Italic Body
+
+This body should be in italics (plain style).
+
+:::
+
+::: {#mydef-first}
+
+##### Upright Body
+
+This body should be upright (definition style).
+
+:::
+
+::: {#myrmk-first}
+
+##### Remark Body
+
+This body should be upright (remark style).
+
+:::
+
+::: {#myprop-first}
+
+##### Default Style
+
+This should default to plain (italic) since no style was specified.
+
+:::
