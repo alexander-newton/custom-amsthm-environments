@@ -59,6 +59,13 @@ Output:
 | `numbered` | boolean | `true` | Enable/disable numbering |
 | `reference-prefix` | string | `name` | Prefix used in cross-references |
 | `latex-name` | string | `key` | LaTeX environment name |
+| `style` | string | `"plain"` | amsthm style: `plain` (italic), `definition` (upright), `remark` (upright, lighter) |
+
+### Document-Level Options
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `custom-amsthm-counter-sharing` | string | `"shared"` | Counter mode: `shared` (all types share one counter) or `independent` (each type has its own counter) |
 
 ### Configuration Examples
 
@@ -82,7 +89,35 @@ custom-amsthm:
   - key: axm
     name: Axiom
     reference-prefix: Ax
+
+  # Theorem style (plain = italic, definition = upright, remark = lighter)
+  - key: mydef
+    name: Definition
+    style: definition
 ```
+
+#### Independent Counters
+
+By default, all environments share a single counter. To give each environment type its own counter:
+
+```yaml
+custom-amsthm-counter-sharing: independent
+custom-amsthm:
+  - key: mythm
+    name: Theorem
+  - key: mydef
+    name: Definition
+    style: definition
+  - key: myaxm
+    name: Axiom
+```
+
+With `independent` mode:
+- Theorem 2.1, Theorem 2.2
+- Definition 2.1, Definition 2.2
+- Axiom 2.1
+
+Each counter resets per section independently.
 
 ### Important: LaTeX Name Generation
 
@@ -103,9 +138,9 @@ custom-amsthm:
 
 ## Features
 
-### Continuous Numbering
+### Continuous Numbering (Default)
 
-All custom environments share a single counter. In PDF output, built-in Quarto theorem types also share this counter.
+All custom environments share a single counter. In PDF output, built-in Quarto theorem types also share this counter. This is the default behavior (`custom-amsthm-counter-sharing: shared`).
 
 ```markdown
 ::: {#prm-first}
@@ -125,6 +160,38 @@ Output:
 - Problem 1
 - Axiom 2
 - Problem 3
+
+### Independent Numbering
+
+Each environment type gets its own counter, numbered by section. Set `custom-amsthm-counter-sharing: independent` in your YAML frontmatter.
+
+```markdown
+::: {#mythm-first}
+First theorem.
+:::
+
+::: {#mydef-first}
+First definition.
+:::
+
+::: {#mythm-second}
+Second theorem.
+:::
+```
+
+Output:
+- Theorem 1.1
+- Definition 1.1
+- Theorem 1.2
+
+Override numbers work correctly in independent mode, using the per-environment counter:
+
+```markdown
+::: {#myaxm-special number="A1"}
+##### Foundational Axiom
+Special axiom.
+:::
+```
 
 ### Custom Numbering Override
 
@@ -277,7 +344,7 @@ Each expected file contains test cases marked with `=== test-id ===`:
 
 ```
 === latex-name-uses-key ===
-\newtheorem{mydef}{Definition}
+\newtheorem{mydef}
 
 === crossref-resolved ===
 \hyperref[mydef-first]{Definition~\ref*{mydef-first}}
@@ -400,9 +467,12 @@ According to @axm-first, we can address @prm-basic.
 
 See `tests/features/` for complete working examples:
 - `test-continuous-numbering.qmd` - Continuous numbering demonstration
+- `test-independent-counters.qmd` - Independent counter mode
+- `test-independent-override.qmd` - Override numbers in independent mode
 - `test-mixed-numbering.qmd` - Integration with Quarto built-in types
 - `test-override-numbering.qmd` - Custom number override features
 - `test-latex-name-and-crossref.qmd` - LaTeX naming and cross-references
+- `test-theorem-style.qmd` - Theorem style options (plain, definition, remark)
 
 ## Contributing
 
