@@ -1,0 +1,19 @@
+=== axm-first-independent ===
+<div id="axm-first" class="theorem axm" data-number="1.1">
+<p><span class="theorem-title"><strong>Axiom 1.1</strong></span>
+
+=== defn-first-independent ===
+<div id="defn-first" class="theorem defn" data-number="1.1">
+<p><span class="theorem-title"><strong>Definition 1.1</strong></span>
+
+=== axm-special-override ===
+<div id="axm-special" class="theorem axm" data-number="A1">
+<p><span class="theorem-title"><strong>Axiom A1 (Axiom of Certainty)</strong></span>
+
+=== axm-second-after-override ===
+<div id="axm-second" class="theorem axm" data-number="1.2">
+<p><span class="theorem-title"><strong>Axiom 1.2</strong></span>
+
+=== defn-second-independent ===
+<div id="defn-second" class="theorem defn" data-number="1.2">
+<p><span class="theorem-title"><strong>Definition 1.2</strong></span>

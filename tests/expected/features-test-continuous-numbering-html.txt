@@ -1,34 +1,34 @@
 === First theorem ===
-<div id="mythm-first" class="theorem mythm" data-number="1">
-<p><span class="theorem-title"><strong>My Theorem 1 (First Theorem)</strong></span> This should be Theorem 2.1.</p>
+<div id="mythm-first" class="theorem mythm" data-number="2.1">
+<p><span class="theorem-title"><strong>My Theorem 2.1 (First Theorem)</strong></span> This should be Theorem 2.1.</p>
 </div>
 
 === First example - continuous from theorem ===
-<div id="myexm-first" class="theorem myexm" data-number="2">
-<p><span class="theorem-title"><strong>My Example 2</strong></span> This should be Example 2.2 (continuing from Theorem 2.1).</p>
+<div id="myexm-first" class="theorem myexm" data-number="2.2">
+<p><span class="theorem-title"><strong>My Example 2.2</strong></span> This should be Example 2.2 (continuing from Theorem 2.1).</p>
 </div>
 
 === First corollary - continuous ===
-<div id="mycor-first" class="theorem mycor" data-number="3">
-<p><span class="theorem-title"><strong>My Corollary 3 (Important Corollary)</strong></span> This should be Corollary 2.3 (continuing the sequence).</p>
+<div id="mycor-first" class="theorem mycor" data-number="2.3">
+<p><span class="theorem-title"><strong>My Corollary 2.3 (Important Corollary)</strong></span> This should be Corollary 2.3 (continuing the sequence).</p>
 </div>
 
 === First axiom - continuous ===
-<div id="myaxm-first" class="theorem myaxm" data-number="4">
-<p><span class="theorem-title"><strong>My Axiom 4</strong></span> This should be Axiom 2.4 (still continuing).</p>
+<div id="myaxm-first" class="theorem myaxm" data-number="2.4">
+<p><span class="theorem-title"><strong>My Axiom 2.4</strong></span> This should be Axiom 2.4 (still continuing).</p>
 </div>
 
 === Second theorem - new section ===
-<div id="mythm-second" class="theorem mythm" data-number="5">
-<p><span class="theorem-title"><strong>My Theorem 5</strong></span> This should be Theorem 3.1 (new section, counter resets).</p>
+<div id="mythm-second" class="theorem mythm" data-number="3.1">
+<p><span class="theorem-title"><strong>My Theorem 3.1</strong></span> This should be Theorem 3.1 (new section, counter resets).</p>
 </div>
 
 === Second example - continuous in new section ===
-<div id="myexm-second" class="theorem myexm" data-number="6">
-<p><span class="theorem-title"><strong>My Example 6 (Another Example)</strong></span> This should be Example 3.2.</p>
+<div id="myexm-second" class="theorem myexm" data-number="3.2">
+<p><span class="theorem-title"><strong>My Example 3.2 (Another Example)</strong></span> This should be Example 3.2.</p>
 </div>
 
 === Second corollary - continuous ===
-<div id="mycor-second" class="theorem mycor" data-number="7">
-<p><span class="theorem-title"><strong>My Corollary 7</strong></span> This should be Corollary 3.3.</p>
+<div id="mycor-second" class="theorem mycor" data-number="3.3">
+<p><span class="theorem-title"><strong>My Corollary 3.3</strong></span> This should be Corollary 3.3.</p>
 </div>

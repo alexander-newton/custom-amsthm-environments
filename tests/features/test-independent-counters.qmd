@@ -1,0 +1,57 @@
+---
+title: Test Independent Counters
+format:
+  pdf:
+    keep-tex: true
+  html: default
+number-sections: true
+custom-amsthm-counter-sharing: independent
+custom-amsthm:
+  - key: mythm
+    name: My Theorem
+  - key: mydef
+    name: My Definition
+    style: definition
+  - key: myaxm
+    name: My Axiom
+filters:
+  - custom-amsthm-environments
+---
+
+# Introduction
+
+This document tests independent counter mode.
+
+# First Section
+
+::: {#mythm-first}
+## First Theorem
+First theorem in section 2.
+:::
+
+::: {#mydef-first}
+First definition in section 2.
+:::
+
+::: {#mythm-second}
+Second theorem in section 2.
+:::
+
+::: {#myaxm-first}
+First axiom in section 2.
+:::
+
+::: {#mydef-second}
+## Important Definition
+Second definition in section 2.
+:::
+
+# Second Section
+
+::: {#mythm-third}
+First theorem in section 3.
+:::
+
+::: {#mydef-third}
+First definition in section 3.
+:::

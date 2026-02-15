@@ -1,0 +1,29 @@
+=== mythm-defined-independently ===
+\newtheorem{mythm}{My Theorem}[section]
+
+=== mydef-defined-independently ===
+\newtheorem{mydef}{My Definition}[section]
+
+=== myaxm-defined-independently ===
+\newtheorem{myaxm}{My Axiom}[section]
+
+=== no-shared-counter-alias ===
+\begin{mythm}[First Theorem]\label{mythm-first}
+
+=== mythm-second-uses-own-env ===
+\begin{mythm}\label{mythm-second}
+
+=== mydef-first-uses-own-env ===
+\begin{mydef}\label{mydef-first}
+
+=== myaxm-first-uses-own-env ===
+\begin{myaxm}\label{myaxm-first}
+
+=== mydef-second-uses-own-env ===
+\begin{mydef}[Important Definition]\label{mydef-second}
+
+=== mythm-third-in-new-section ===
+\begin{mythm}\label{mythm-third}
+
+=== mydef-third-in-new-section ===
+\begin{mydef}\label{mydef-third}

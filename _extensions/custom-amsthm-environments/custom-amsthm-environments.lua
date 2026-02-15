@@ -7,6 +7,8 @@ local html_counter = 0  -- Single shared counter for HTML output (continuous num
 local html_section_counter = 0  -- Track section numbers for HTML output
 local html_top_level = nil  -- Auto-detect the top-level header (shallowest level used)
 local theorem_refs = {}  -- Store theorem IDs and their display numbers for cross-references
+local counter_sharing = "shared"  -- "shared" or "independent"
+local html_counters = {}  -- Per-type counters for independent HTML numbering
 
 -- Render a list of Pandoc Inlines to a LaTeX string, preserving math delimiters
 local function inlines_to_latex(inlines)
@@ -70,6 +72,14 @@ function process_custom_amsthm(meta)
     end
   end
 
+  -- Read counter sharing mode
+  if meta["custom-amsthm-counter-sharing"] then
+    local mode = pandoc.utils.stringify(meta["custom-amsthm-counter-sharing"])
+    if mode == "independent" or mode == "shared" then
+      counter_sharing = mode
+    end
+  end
+
   return meta
 end
 
@@ -82,70 +92,78 @@ function generate_latex_headers()
   table.insert(headers, "\\@ifpackageloaded{amsthm}{}{\\usepackage{amsthm}}")
   table.insert(headers, "\\makeatother")
 
-  -- List of Quarto's built-in theorem types that we want to make share counters
-  local builtin_types = {
-    "lemma", "corollary", "proposition", "conjecture",
-    "definition", "example", "exercise"
-  }
-
-  -- Determine the master counter
-  -- If no built-in theorems are used, we need to define our own master
-  local master_latex = "theorem"
-  local need_master_definition = true
-
-  -- Check if theorem is already defined (will be if any #thm- divs exist)
-  -- For now, we'll always try to make built-in counters aliases
-  -- Make all built-in counters aliases of the theorem counter
-  -- This is done AFTER Quarto defines them, so they'll share the same counter
-  for _, builtin in ipairs(builtin_types) do
-    -- Make the counter an alias: \let\c@<env>\c@theorem
-    -- Wrap in conditional to avoid errors if counter doesn't exist
-    table.insert(headers, "\\makeatletter")
-    table.insert(headers, "\\@ifundefined{c@" .. builtin .. "}{}{\\let\\c@" .. builtin .. "\\c@" .. master_latex .. "}")
-    table.insert(headers, "\\makeatother")
-  end
-
-  -- Find the first numbered custom environment
-  local master_custom_key = nil
-  for key, env in pairs(custom_amsthm_envs) do
-    if env.numbered then
-      if not master_custom_key then
-        master_custom_key = key
-      end
-    end
-  end
-
-  if master_custom_key then
-    local first_custom_env = custom_amsthm_envs[master_custom_key]
-
-    -- First, define the first custom environment conditionally
-    table.insert(headers, "\\theoremstyle{" .. first_custom_env.style .. "}")
-    table.insert(headers, "\\makeatletter")
-    table.insert(headers, "\\@ifundefined{c@" .. master_latex .. "}{")
-    -- theorem counter doesn't exist, define first custom env as master
-    table.insert(headers, "  \\newtheorem{" .. first_custom_env.latex_name .. "}{" .. first_custom_env.name .. "}[section]")
-    table.insert(headers, "  \\let\\c@" .. master_latex .. "\\c@" .. first_custom_env.latex_name)
-    table.insert(headers, "  \\let\\thetheorem\\the" .. first_custom_env.latex_name)
-    table.insert(headers, "  \\let\\p@" .. master_latex .. "\\p@" .. first_custom_env.latex_name)
-    table.insert(headers, "}{")
-    -- theorem counter exists, share it
-    table.insert(headers, "  \\newtheorem{" .. first_custom_env.latex_name .. "}[" .. master_latex .. "]{" .. first_custom_env.name .. "}")
-    table.insert(headers, "}")
-    table.insert(headers, "\\makeatother")
-
-    -- Now define all other custom numbered environments to share with theorem
+  if counter_sharing == "independent" then
+    -- Independent mode: each environment gets its own counter numbered by section
     for key, env in pairs(custom_amsthm_envs) do
-      if env.numbered and key ~= master_custom_key then
-        table.insert(headers, "\\theoremstyle{" .. env.style .. "}")
-        table.insert(headers, "\\newtheorem{" .. env.latex_name .. "}[" .. master_latex .. "]{" .. env.name .. "}")
-      end
-    end
-
-    -- Define unnumbered custom environments
-    for key, env in pairs(custom_amsthm_envs) do
-      if not env.numbered then
-        table.insert(headers, "\\theoremstyle{" .. env.style .. "}")
+      table.insert(headers, "\\theoremstyle{" .. env.style .. "}")
+      if env.numbered then
+        table.insert(headers, "\\newtheorem{" .. env.latex_name .. "}{" .. env.name .. "}[section]")
+      else
         table.insert(headers, "\\newtheorem*{" .. env.latex_name .. "}{" .. env.name .. "}")
+      end
+    end
+  else
+    -- Shared mode (default): all environments share the theorem counter
+
+    -- List of Quarto's built-in theorem types that we want to make share counters
+    local builtin_types = {
+      "lemma", "corollary", "proposition", "conjecture",
+      "definition", "example", "exercise"
+    }
+
+    -- Determine the master counter
+    local master_latex = "theorem"
+
+    -- Make all built-in counters aliases of the theorem counter
+    -- This is done AFTER Quarto defines them, so they'll share the same counter
+    for _, builtin in ipairs(builtin_types) do
+      table.insert(headers, "\\makeatletter")
+      table.insert(headers, "\\@ifundefined{c@" .. builtin .. "}{}{\\let\\c@" .. builtin .. "\\c@" .. master_latex .. "}")
+      table.insert(headers, "\\makeatother")
+    end
+
+    -- Find the first numbered custom environment
+    local master_custom_key = nil
+    for key, env in pairs(custom_amsthm_envs) do
+      if env.numbered then
+        if not master_custom_key then
+          master_custom_key = key
+        end
+      end
+    end
+
+    if master_custom_key then
+      local first_custom_env = custom_amsthm_envs[master_custom_key]
+
+      -- First, define the first custom environment conditionally
+      table.insert(headers, "\\theoremstyle{" .. first_custom_env.style .. "}")
+      table.insert(headers, "\\makeatletter")
+      table.insert(headers, "\\@ifundefined{c@" .. master_latex .. "}{")
+      -- theorem counter doesn't exist, define first custom env as master
+      table.insert(headers, "  \\newtheorem{" .. first_custom_env.latex_name .. "}{" .. first_custom_env.name .. "}[section]")
+      table.insert(headers, "  \\let\\c@" .. master_latex .. "\\c@" .. first_custom_env.latex_name)
+      table.insert(headers, "  \\let\\thetheorem\\the" .. first_custom_env.latex_name)
+      table.insert(headers, "  \\let\\p@" .. master_latex .. "\\p@" .. first_custom_env.latex_name)
+      table.insert(headers, "}{")
+      -- theorem counter exists, share it
+      table.insert(headers, "  \\newtheorem{" .. first_custom_env.latex_name .. "}[" .. master_latex .. "]{" .. first_custom_env.name .. "}")
+      table.insert(headers, "}")
+      table.insert(headers, "\\makeatother")
+
+      -- Now define all other custom numbered environments to share with theorem
+      for key, env in pairs(custom_amsthm_envs) do
+        if env.numbered and key ~= master_custom_key then
+          table.insert(headers, "\\theoremstyle{" .. env.style .. "}")
+          table.insert(headers, "\\newtheorem{" .. env.latex_name .. "}[" .. master_latex .. "]{" .. env.name .. "}")
+        end
+      end
+
+      -- Define unnumbered custom environments
+      for key, env in pairs(custom_amsthm_envs) do
+        if not env.numbered then
+          table.insert(headers, "\\theoremstyle{" .. env.style .. "}")
+          table.insert(headers, "\\newtheorem*{" .. env.latex_name .. "}{" .. env.name .. "}")
+        end
       end
     end
   end
@@ -186,14 +204,15 @@ function process_divs(div)
       if quarto.doc.is_format("latex") then
         -- Generate LaTeX environment
         local latex_name = env.latex_name
+        -- Determine which counter controls this environment
+        local counter_name = counter_sharing == "independent" and latex_name or "theorem"
         local blocks = pandoc.List()
 
         -- Handle override number
         if override_number then
           -- Temporarily redefine the counter display to show override number
           blocks:insert(pandoc.RawBlock("latex", "\\begingroup"))
-          -- Redefine \thetheorem to show override number
-          blocks:insert(pandoc.RawBlock("latex", "\\renewcommand{\\thetheorem}{" .. override_number .. "}"))
+          blocks:insert(pandoc.RawBlock("latex", "\\renewcommand{\\the" .. counter_name .. "}{" .. override_number .. "}"))
         end
 
         local begin_env = "\\begin{" .. latex_name .. "}"
@@ -213,7 +232,7 @@ function process_divs(div)
 
         if override_number then
           -- Decrement the counter since we don't want override numbers to consume sequence numbers
-          blocks:insert(pandoc.RawBlock("latex", "\\addtocounter{theorem}{-1}"))
+          blocks:insert(pandoc.RawBlock("latex", "\\addtocounter{" .. counter_name .. "}{-1}"))
           blocks:insert(pandoc.RawBlock("latex", "\\endgroup"))
         end
 
@@ -260,8 +279,18 @@ function process_divs(div)
           display_number = nil
         else
           -- Standard sequential numbering for HTML with section prefix
-          html_counter = html_counter + 1
-          display_number = tostring(html_section_counter) .. "." .. tostring(html_counter)
+          if counter_sharing == "independent" then
+            -- Independent mode: per-type counters
+            if not html_counters[key] then
+              html_counters[key] = 0
+            end
+            html_counters[key] = html_counters[key] + 1
+            display_number = tostring(html_section_counter) .. "." .. tostring(html_counters[key])
+          else
+            -- Shared mode: single counter across all types
+            html_counter = html_counter + 1
+            display_number = tostring(html_section_counter) .. "." .. tostring(html_counter)
+          end
           header_inlines:insert(pandoc.Str(env.name .. " " .. display_number))
           if title_inlines then
             header_inlines:insert(pandoc.Str(" ("))
@@ -436,7 +465,11 @@ return {
             -- Increment section counter when we see a top-level header
             if el.level == html_top_level then
               html_section_counter = html_section_counter + 1
-              html_counter = 0  -- Reset counter at each section
+              html_counter = 0  -- Reset shared counter at each section
+              -- Reset per-type counters for independent mode
+              for k in pairs(html_counters) do
+                html_counters[k] = 0
+              end
             end
             return el
           end,

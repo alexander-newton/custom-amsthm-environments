@@ -1,0 +1,40 @@
+---
+title: Test Independent Override Numbers
+format:
+  pdf:
+    keep-tex: true
+  html: default
+number-sections: true
+custom-amsthm-counter-sharing: independent
+custom-amsthm:
+  - key: axm
+    name: Axiom
+  - key: defn
+    name: Definition
+    style: definition
+filters:
+  - custom-amsthm-environments
+---
+
+# First Section
+
+::: {#axm-first}
+Standard axiom. Should be Axiom 1.1.
+:::
+
+::: {#defn-first}
+Standard definition. Should be Definition 1.1.
+:::
+
+::: {#axm-special number="A1"}
+## Axiom of Certainty
+Override axiom with number A1.
+:::
+
+::: {#axm-second}
+Should be Axiom 1.2 (override did not consume counter).
+:::
+
+::: {#defn-second}
+Should be Definition 1.2.
+:::

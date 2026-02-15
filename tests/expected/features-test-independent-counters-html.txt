@@ -1,0 +1,27 @@
+=== mythm-first-independent-number ===
+<div id="mythm-first" class="theorem mythm" data-number="2.1">
+<p><span class="theorem-title"><strong>My Theorem 2.1 (First Theorem)</strong></span>
+
+=== mydef-first-independent-number ===
+<div id="mydef-first" class="theorem mydef" data-number="2.1">
+<p><span class="theorem-title"><strong>My Definition 2.1</strong></span>
+
+=== mythm-second-independent-number ===
+<div id="mythm-second" class="theorem mythm" data-number="2.2">
+<p><span class="theorem-title"><strong>My Theorem 2.2</strong></span>
+
+=== myaxm-first-independent-number ===
+<div id="myaxm-first" class="theorem myaxm" data-number="2.1">
+<p><span class="theorem-title"><strong>My Axiom 2.1</strong></span>
+
+=== mydef-second-independent-number ===
+<div id="mydef-second" class="theorem mydef" data-number="2.2">
+<p><span class="theorem-title"><strong>My Definition 2.2 (Important Definition)</strong></span>
+
+=== mythm-third-new-section-reset ===
+<div id="mythm-third" class="theorem mythm" data-number="3.1">
+<p><span class="theorem-title"><strong>My Theorem 3.1</strong></span>
+
+=== mydef-third-new-section-reset ===
+<div id="mydef-third" class="theorem mydef" data-number="3.1">
+<p><span class="theorem-title"><strong>My Definition 3.1</strong></span>

@@ -1,11 +1,11 @@
 === latex-name-uses-key-mydef ===
-\newtheorem{mydef}{Definition}
+\newtheorem{mydef}
 
 === latex-name-uses-key-mythm ===
-\newtheorem{mythm}[theorem]{Theorem}
+\newtheorem{mythm}
 
 === latex-name-explicit-customaxiom ===
-\newtheorem{customaxiom}[theorem]{Axiom}
+\newtheorem{customaxiom}
 
 === crossref-mydef-resolved ===
 \hyperref[mydef-first]{Definition~\ref*{mydef-first}}

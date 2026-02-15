@@ -1,0 +1,23 @@
+=== axm-defined-independently ===
+\newtheorem{axm}{Axiom}[section]
+
+=== defn-defined-independently ===
+\newtheorem{defn}{Definition}[section]
+
+=== override-uses-axm-counter ===
+\renewcommand{\theaxm}{A1}
+
+=== override-decrements-axm-counter ===
+\addtocounter{axm}{-1}
+
+=== axm-first-env ===
+\begin{axm}\label{axm-first}
+
+=== defn-first-env ===
+\begin{defn}\label{defn-first}
+
+=== axm-special-override-env ===
+\begin{axm}[Axiom of Certainty]\label{axm-special}
+
+=== axm-second-env ===
+\begin{axm}\label{axm-second}

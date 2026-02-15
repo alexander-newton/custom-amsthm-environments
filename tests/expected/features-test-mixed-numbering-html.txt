@@ -1,11 +1,11 @@
 === Built-in theorem ===
 <div id="thm-builtin1" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 1 (Built-in Theorem)</strong></span> This is Quarto's built-in theorem. Should be 1.1.</p>
+<p><span class="theorem-title"><strong>Theorem 1 (Built-in Theorem)</strong></span> This is Quarto’s built-in theorem. Should be 1.1.</p>
 </div>
 
 === Custom problem ===
-<div id="prm-custom1" class="theorem prm" data-number="1">
-<p><span class="theorem-title"><strong>Problem 1</strong></span> Custom Problem environment. Should be 1.2 (continuing from theorem).</p>
+<div id="prm-custom1" class="theorem prm" data-number="1.1">
+<p><span class="theorem-title"><strong>Problem 1.1</strong></span> Custom Problem environment. Should be 1.2 (continuing from theorem).</p>
 </div>
 
 === Built-in definition ===
@@ -14,8 +14,8 @@
 </div>
 
 === Custom claim - continuous with problem ===
-<div id="clm-custom1" class="theorem clm" data-number="2">
-<p><span class="theorem-title"><strong>Claim 2 (Important Claim)</strong></span> Custom Claim environment. Should be 1.4 (still continuing).</p>
+<div id="clm-custom1" class="theorem clm" data-number="1.2">
+<p><span class="theorem-title"><strong>Claim 1.2 (Important Claim)</strong></span> Custom Claim environment. Should be 1.4 (still continuing).</p>
 </div>
 
 === Built-in lemma ===

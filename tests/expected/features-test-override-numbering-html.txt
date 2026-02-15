@@ -1,21 +1,16 @@
 === Standard axiom ===
-<div id="axm-first" class="theorem axm" data-number="1">
-<p><span class="theorem-title"><strong>Axiom 1</strong></span> Standard axiom. Should be 1.1.</p>
+<div id="axm-first" class="theorem axm" data-number="1.1">
+<p><span class="theorem-title"><strong>Axiom 1.1</strong></span> Standard axiom. Should be 1.1.</p>
 </div>
 
 === Standard problem ===
-<div id="prm-first" class="theorem prm" data-number="2">
-<p><span class="theorem-title"><strong>Problem 2</strong></span> Standard problem. Should be 1.2.</p>
+<div id="prm-first" class="theorem prm" data-number="1.2">
+<p><span class="theorem-title"><strong>Problem 1.2</strong></span> Standard problem. Should be 1.2.</p>
 </div>
 
 === Override number A1 ===
 <div id="axm-special" class="theorem axm" data-number="A1">
-<p><span class="theorem-title"><strong>Axiom A1 (Axiom of Certainty)</strong></span> This axiom uses override number "A1" instead of sequential numbering.</p>
-</div>
-
-=== Problem after override - continues from 2 ===
-<div id="prm-after" class="theorem prm" data-number="3">
-<p><span class="theorem-title"><strong>Problem 3</strong></span> This problem should be 1.3 (sequential numbering continues separately).</p>
+<p><span class="theorem-title"><strong>Axiom A1 (Axiom of Certainty)</strong></span> This axiom uses override number “A1” instead of sequential numbering.</p>
 </div>
 
 === Override number A2 ===

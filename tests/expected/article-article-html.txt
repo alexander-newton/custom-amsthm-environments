@@ -1,16 +1,16 @@
 === Test problem 1 ===
-<div id="prm-first" class="theorem prm" data-number="1">
-<p><span class="theorem-title"><strong>Problem 1 (First Problem)</strong></span> Verify that this extension works correctly.</p>
+<div id="prm-first" class="theorem prm" data-number="2.1">
+<p><span class="theorem-title"><strong>Problem 2.1 (First Problem)</strong></span> Verify that this extension works correctly.</p>
 </div>
 
 === Problem without title ===
-<div id="prm-second" class="theorem prm" data-number="2">
-<p><span class="theorem-title"><strong>Problem 2</strong></span> This problem doesn't have a title.</p>
+<div id="prm-second" class="theorem prm" data-number="3.1">
+<p><span class="theorem-title"><strong>Problem 3.1</strong></span> This problem doesn’t have a title.</p>
 </div>
 
 === Task with title ===
-<div id="tsk-key" class="theorem tsk" data-number="3">
-<p><span class="theorem-title"><strong>Task 3 (Key Task)</strong></span> For all <span class="math inline">\(x \in \mathbb{R}\)</span>, we have <span class="math inline">\(x^2 \geq 0\)</span>.</p>
+<div id="tsk-key" class="theorem tsk" data-number="4.1">
+<p><span class="theorem-title"><strong>Task 4.1 (Key Task)</strong></span> For all <span class="math inline">\(x \in \mathbb{R}\)</span>, we have <span class="math inline">\(x^2 \geq 0\)</span>.</p>
 </div>
 
 === Unnumbered use case ===
@@ -19,21 +19,21 @@
 </div>
 
 === Problem in subsection ===
-<div id="prm-subsection1" class="theorem prm" data-number="4">
-<p><span class="theorem-title"><strong>Problem 4</strong></span> Problem in section 2.2.</p>
+<div id="prm-subsection1" class="theorem prm" data-number="5.1">
+<p><span class="theorem-title"><strong>Problem 5.1</strong></span> Problem in section 2.2.</p>
 </div>
 
 === Problem with deeper numbering ===
-<div id="prm-subsection2" class="theorem prm" data-number="5">
-<p><span class="theorem-title"><strong>Problem 5 (Deeper Problem)</strong></span> This problem is in section 2.2.1.</p>
+<div id="prm-subsection2" class="theorem prm" data-number="7.1">
+<p><span class="theorem-title"><strong>Problem 7.1 (Deeper Problem)</strong></span> This problem is in section 2.2.1.</p>
 </div>
 
 === Task without title ===
-<div id="tsk-second" class="theorem tsk" data-number="6">
-<p><span class="theorem-title"><strong>Task 6</strong></span> Another task with global numbering.</p>
+<div id="tsk-second" class="theorem tsk" data-number="7.2">
+<p><span class="theorem-title"><strong>Task 7.2</strong></span> Another task with global numbering.</p>
 </div>
 
 === Problem with additional classes ===
-<div id="prm-classes" class="box test-class theorem prm" data-number="7">
-<p><span class="theorem-title"><strong>Problem 7 (Problem with Classes)</strong></span> This problem has additional CSS classes <code>.box</code> and <code>.test-class</code> that should be preserved in the HTML output.</p>
+<div id="prm-classes" class="box test-class theorem prm" data-number="11.1">
+<p><span class="theorem-title"><strong>Problem 11.1 (Problem with Classes)</strong></span> This problem has additional CSS classes <code>.box</code> and <code>.test-class</code> that should be preserved in the HTML output.</p>
 </div>

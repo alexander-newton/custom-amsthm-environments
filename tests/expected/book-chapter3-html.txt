@@ -1,9 +1,9 @@
 === New problem in chapter 3 ===
-<div id="prm-chapter3-first" class="theorem prm" data-number="1">
-<p><span class="theorem-title"><strong>Problem 1 (Chapter 3 Problem)</strong></span> This is the first problem in Chapter 3.</p>
+<div id="prm-chapter3-first" class="theorem prm" data-number="3.1">
+<p><span class="theorem-title"><strong>Problem 3.1 (Chapter 3 Problem)</strong></span> This is the first problem in Chapter 3.</p>
 </div>
 
 === Task in chapter 3 ===
-<div id="tsk-chapter3-final" class="theorem tsk" data-number="2">
-<p><span class="theorem-title"><strong>Task 2</strong></span> Try rendering the entire book and verify all cross-references work.</p>
+<div id="tsk-chapter3-final" class="theorem tsk" data-number="3.2">
+<p><span class="theorem-title"><strong>Task 3.2</strong></span> Try rendering the entire book and verify all cross-references work.</p>
 </div>
